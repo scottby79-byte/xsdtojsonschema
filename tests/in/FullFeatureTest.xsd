@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" 
+           targetNamespace="http://example.com/tests"
+           xmlns:tns="http://example.com/tests"
+           elementFormDefault="qualified">
+
+    <xs:simpleType name="T_CodePostal">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[0-9]{5}"/>
+            <xs:length value="5"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="T_NiveauPriorite">
+        <xs:restriction base="xs:integer">
+            <xs:enumeration value="1"/>
+            <xs:enumeration value="2"/>
+            <xs:minInclusive value="0"/>
+            <xs:maxInclusive value="5"/>
+        </xs:restriction>
+    </xs:simpleType>
+    
+    <xs:simpleType name="T_ListeValeurs">
+        <xs:list itemType="xs:string"/>
+    </xs:simpleType>
+
+    <xs:group name="G_InformationsBase">
+        <xs:sequence>
+            <xs:element name="dateCreation" type="xs:date"/>
+            <xs:element name="priorite" type="tns:T_NiveauPriorite" minOccurs="0"/>
+        </xs:sequence>
+    </xs:group>
+
+    <xs:group name="G_ModePaiement">
+        <xs:choice>
+            <xs:element name="carte" type="tns:T_CodePostal"/> <xs:element name="virement" type="xs:string"/>
+        </xs:choice>
+    </xs:group>
+
+    <xs:attributeGroup name="AG_Metadonnees">
+        <xs:attribute name="id" type="xs:ID" use="required"/>
+        <xs:attribute name="version" type="xs:decimal" default="1.0"/>
+    </xs:attributeGroup>
+
+    <xs:complexType name="T_DocumentBase" abstract="true">
+        <xs:attributeGroup ref="tns:AG_Metadonnees"/>
+    </xs:complexType>
+
+    <xs:complexType name="T_DocumentAvecClient">
+        <xs:complexContent>
+            <xs:extension base="tns:T_DocumentBase">
+                <xs:sequence>
+                    <xs:element name="nomClient" type="xs:string"/>
+                    <xs:element name="adresseLivraison" type="tns:T_Adresse" minOccurs="0"/>
+                </xs:sequence>
+                <xs:attribute name="statut" type="xs:string" use="optional"/>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+
+    <xs:complexType name="T_Commande">
+        <xs:sequence>
+            <xs:group ref="tns:G_InformationsBase"/>
+            
+            <xs:choice>
+                <xs:element name="produitSimple" type="xs:string"/>
+                <xs:sequence>
+                    <xs:element name="ligneArticle" type="tns:T_Article" maxOccurs="unbounded"/>
+                    <xs:element name="taxe" type="xs:decimal" minOccurs="0"/>
+                </xs:sequence>
+            </xs:choice>
+            
+            <xs:group ref="tns:G_ModePaiement"/>
+        </xs:sequence>
+    </xs:complexType>
+    
+    <xs:complexType name="T_Article">
+        <xs:sequence>
+            <xs:element name="reference" type="xs:string"/>
+            <xs:element name="commentaire" type="xs:string" minOccurs="0" maxOccurs="5"/> 
+        </xs:sequence>
+        <xs:attribute name="quantite" type="xs:positiveInteger" use="required"/>
+    </xs:complexType>
+    
+    <xs:complexType name="T_Adresse">
+        <xs:all>
+            <xs:element name="rue" type="xs:string"/>
+            <xs:element name="ville" type="xs:string"/>
+            <xs:element name="codePostal" type="tns:T_CodePostal"/>
+        </xs:all>
+    </xs:complexType>
+
+    <xs:element name="CommandeRoot" type="tns:T_Commande"/>
+    <xs:element name="ClientDocument" type="tns:T_DocumentAvecClient"/>
+
+</xs:schema>

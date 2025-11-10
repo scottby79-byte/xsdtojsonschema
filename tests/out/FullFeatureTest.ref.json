@@ -1,0 +1,153 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Root Schema for http://example.com/tests",
+    "$id": "http://example.com/tests/document.json",
+    "oneOf": [
+        {
+            "type": "object",
+            "properties": {
+                "CommandeRoot": {
+                    "$ref": "#/definitions/T_Commande"
+                }
+            },
+            "required": [
+                "CommandeRoot"
+            ]
+        },
+        {
+            "type": "object",
+            "properties": {
+                "ClientDocument": {
+                    "$ref": "#/definitions/T_DocumentAvecClient"
+                }
+            },
+            "required": [
+                "ClientDocument"
+            ]
+        }
+    ],
+    "definitions": {
+        "T_NiveauPriorite": {
+            "type": "integer",
+            "enum": [
+                1,
+                2
+            ],
+            "minimum": 0,
+            "maximum": 5
+        },
+        "group_G_InformationsBase": {
+            "type": "object",
+            "properties": {
+                "dateCreation": {
+                    "type": "string"
+                },
+                "priorite": {
+                    "$ref": "#/definitions/T_NiveauPriorite"
+                }
+            },
+            "required": [
+                "dateCreation"
+            ]
+        },
+        "T_CodePostal": {
+            "type": "string",
+            "pattern": "[0-9]{5}",
+            "minLength": 5,
+            "maxLength": 5
+        },
+        "group_G_ModePaiement": {
+            "oneOf": [
+                {
+                    "type": "object",
+                    "properties": {
+                        "carte": {
+                            "$ref": "#/definitions/T_CodePostal"
+                        }
+                    },
+                    "required": [
+                        "carte"
+                    ]
+                },
+                {
+                    "type": "object",
+                    "properties": {
+                        "virement": {
+                            "type": "string"
+                        }
+                    },
+                    "required": [
+                        "virement"
+                    ]
+                }
+            ]
+        },
+        "T_Commande": {
+            "type": "object",
+            "oneOf": [
+                {
+                    "type": "object",
+                    "properties": {
+                        "produitSimple": {
+                            "type": "string"
+                        }
+                    },
+                    "required": [
+                        "produitSimple"
+                    ]
+                }
+            ]
+        },
+        "T_DocumentBase": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "number",
+                    "default": 1.0
+                }
+            },
+            "required": [
+                "id"
+            ]
+        },
+        "T_Adresse": {
+            "type": "object",
+            "properties": {
+                "rue": {
+                    "type": "string"
+                },
+                "ville": {
+                    "type": "string"
+                },
+                "codePostal": {
+                    "$ref": "#/definitions/T_CodePostal"
+                }
+            },
+            "required": [
+                "codePostal",
+                "rue",
+                "ville"
+            ]
+        },
+        "T_DocumentAvecClient": {
+            "type": "object",
+            "properties": {
+                "statut": {
+                    "type": "string"
+                },
+                "nomClient": {
+                    "type": "string"
+                },
+                "adresseLivraison": {
+                    "$ref": "#/definitions/T_Adresse"
+                }
+            },
+            "required": [
+                "nomClient"
+            ]
+        }
+    }
+}

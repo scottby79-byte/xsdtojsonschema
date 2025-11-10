@@ -1,0 +1,121 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Root Schema for http://example.com/tests",
+    "$id": "http://example.com/tests/document.json",
+    "oneOf": [
+        {
+            "type": "object",
+            "properties": {
+                "CommandeRoot": {
+                    "type": "object",
+                    "oneOf": [
+                        {
+                            "type": "object",
+                            "properties": {
+                                "dateCreation": {
+                                    "type": "string"
+                                },
+                                "priorite": {
+                                    "type": "integer",
+                                    "enum": [
+                                        1,
+                                        2
+                                    ],
+                                    "minimum": 0,
+                                    "maximum": 5
+                                },
+                                "produitSimple": {
+                                    "type": "string"
+                                }
+                            },
+                            "required": [
+                                "dateCreation",
+                                "produitSimple"
+                            ]
+                        },
+                        {
+                            "type": "object",
+                            "properties": {
+                                "carte": {
+                                    "type": "string",
+                                    "pattern": "[0-9]{5}",
+                                    "minLength": 5,
+                                    "maxLength": 5
+                                }
+                            },
+                            "required": [
+                                "carte"
+                            ]
+                        },
+                        {
+                            "type": "object",
+                            "properties": {
+                                "virement": {
+                                    "type": "string"
+                                }
+                            },
+                            "required": [
+                                "virement"
+                            ]
+                        }
+                    ]
+                }
+            },
+            "required": [
+                "CommandeRoot"
+            ]
+        },
+        {
+            "type": "object",
+            "properties": {
+                "ClientDocument": {
+                    "type": "object",
+                    "properties": {
+                        "id": {
+                            "type": "string"
+                        },
+                        "version": {
+                            "type": "number",
+                            "default": 1.0
+                        },
+                        "statut": {
+                            "type": "string"
+                        },
+                        "nomClient": {
+                            "type": "string"
+                        },
+                        "adresseLivraison": {
+                            "type": "object",
+                            "properties": {
+                                "rue": {
+                                    "type": "string"
+                                },
+                                "ville": {
+                                    "type": "string"
+                                },
+                                "codePostal": {
+                                    "type": "string",
+                                    "pattern": "[0-9]{5}",
+                                    "minLength": 5,
+                                    "maxLength": 5
+                                }
+                            },
+                            "required": [
+                                "codePostal",
+                                "rue",
+                                "ville"
+                            ]
+                        }
+                    },
+                    "required": [
+                        "id",
+                        "nomClient"
+                    ]
+                }
+            },
+            "required": [
+                "ClientDocument"
+            ]
+        }
+    ]
+}

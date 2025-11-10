@@ -226,13 +226,13 @@ class XSDToJsonSchemaConverter:
         if attr_name:
             return (attr_name, attr_schema, use)
         return None
-
     
+
     def _parse_simple_type(self, simple_type_node: etree.Element, current_xsd_root: etree.Element, parent_element_name: Optional[str] = None) -> dict:
         """ 
-        Parse un xs:simpleType, gérant les restrictions (enum, pattern), les listes et les unions (oneOf). 
+        Parse un xs:simpleType, gérant les restrictions (enum, pattern, PLAGES et LONGUEURS), 
+        les listes et les unions. 
         """
-        # ... (Logique de parsing de type simple) ...
         schema: Dict[str, Any] = {}
         
         restriction_node = simple_type_node.find(f"{XSD_NS}restriction")
@@ -244,15 +244,56 @@ class XSDToJsonSchemaConverter:
             
             for child in restriction_node.iterchildren():
                 tag_name = etree.QName(child).localname
-                
+                value = child.get("value") # Récupérer la valeur de la contrainte (facet)
+
                 if tag_name == "enumeration":
                     if "enum" not in schema: schema["enum"] = []
-                    enum_value = self._convert_value_to_json_type(child.get("value"), schema)
+                    # Conversion de la valeur au type JSON approprié
+                    enum_value = self._convert_value_to_json_type(value, schema) 
                     if enum_value is not None:
                         schema["enum"].append(enum_value)
                 
                 elif tag_name == "pattern":
-                    schema["pattern"] = child.get("value")
+                    schema["pattern"] = value
+
+                # --- GESTION DES FACETS DE LONGUEUR (pour types string ou array/list) ---
+                # XSD length -> JSON minLength et maxLength
+                elif tag_name == "length" and value is not None:
+                    try:
+                        length = int(value)
+                        schema["minLength"] = length
+                        schema["maxLength"] = length
+                    except ValueError: pass
+                
+                # XSD minLength -> JSON minLength
+                elif tag_name == "minLength" and value is not None:
+                    try:
+                        schema["minLength"] = int(value)
+                    except ValueError: pass
+                    
+                # XSD maxLength -> JSON maxLength
+                elif tag_name == "maxLength" and value is not None:
+                    try:
+                        schema["maxLength"] = int(value)
+                    except ValueError: pass
+
+                # --- GESTION DES FACETS DE PLAGE (pour types numériques) ---
+                # XSD minInclusive -> JSON minimum (inclut la valeur)
+                elif tag_name == "minInclusive" and value is not None:
+                    # Utiliser le convertisseur pour garantir le bon type (int/float)
+                    schema["minimum"] = self._convert_value_to_json_type(value, schema)
+                    
+                # XSD maxInclusive -> JSON maximum (inclut la valeur)
+                elif tag_name == "maxInclusive" and value is not None:
+                    schema["maximum"] = self._convert_value_to_json_type(value, schema)
+
+                # --- GESTION DES FACETS DE CHIFFRES (totalDigits/fractionDigits) ---
+                # Ces facets nécessitent une logique de conversion complexe en pattern RegEx 
+                # en JSON Schema (Draft-07). Nous les ignorons ici pour la simplicité.
+                elif tag_name == "totalDigits" and value is not None:
+                    pass
+                elif tag_name == "fractionDigits" and value is not None:
+                    pass
 
         list_node = simple_type_node.find(f"{XSD_NS}list")
         if list_node is not None:
