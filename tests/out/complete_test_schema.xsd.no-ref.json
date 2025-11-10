@@ -115,8 +115,8 @@
                     "properties": {
                         "id": {
                             "type": [
-                                "string",
-                                "integer"
+                                "integer",
+                                "string"
                             ]
                         }
                     },
@@ -145,8 +145,8 @@
                                         },
                                         "employeeId": {
                                             "type": [
-                                                "string",
-                                                "integer"
+                                                "integer",
+                                                "string"
                                             ]
                                         },
                                         "position": {
@@ -233,8 +233,8 @@
                             "properties": {
                                 "id": {
                                     "type": [
-                                        "string",
-                                        "integer"
+                                        "integer",
+                                        "string"
                                     ]
                                 }
                             },
@@ -263,8 +263,8 @@
                                                 },
                                                 "employeeId": {
                                                     "type": [
-                                                        "string",
-                                                        "integer"
+                                                        "integer",
+                                                        "string"
                                                     ]
                                                 },
                                                 "position": {

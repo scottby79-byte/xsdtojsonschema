@@ -166,8 +166,8 @@
         },
         "IdUnionType": {
             "type": [
-                "integer",
-                "string"
+                "string",
+                "integer"
             ]
         },
         "group_ContactInfoGroup": {
