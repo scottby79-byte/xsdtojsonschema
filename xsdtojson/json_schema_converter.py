@@ -1,6 +1,5 @@
 from lxml import etree
 from xsdtojson.constants import XSD_NAMESPACE, XSD_TO_JSON_TYPE_MAP
-# Ces imports sont conservés pour correspondre à votre structure de projet
 from xsdtojson.file_utils import FileUtils 
 from xsdtojson.xsd_parser import XSDParser
 from typing import Any, Dict, List, Optional, Tuple, Union
