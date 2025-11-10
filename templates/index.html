@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Convertisseur XSD vers JSON Schema</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; color: #333; }
+        .container { background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); max-width: 1500px; margin: 20px auto; }
+        h1 { color: #0056b3; text-align: center; margin-bottom: 30px; }
+        form { display: flex; flex-direction: column; gap: 15px; }
+        label { font-weight: bold; }
+        input[type="file"], input[type="text"], input[type="submit"] { padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
+        input[type="submit"] { background-color: #007bff; color: white; cursor: pointer; border: none; font-size: 16px; transition: background-color 0.3s ease; }
+        input[type="submit"]:hover { background-color: #0056b3; }
+        .options { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
+        #jsonOutput {
+            background-color: #eee;
+            border: 1px solid #ccc;
+            padding: 15px;
+            margin-top: 20px;
+            white-space: pre-wrap; /* Préserve les retours à la ligne et les espaces */
+            font-family: 'Courier New', Courier, monospace;
+            max-height: 500px;
+            overflow-y: auto;
+            border-radius: 4px;
+        }
+        .error-message { color: red; margin-top: 10px; text-align: center; }
+        .loading-spinner {
+            display: none; /* Caché par défaut */
+            border: 4px solid rgba(0, 0, 0, .1);
+            border-left-color: #007bff;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            margin: 10px auto;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Convertisseur XSD vers JSON Schema</h1>
+
+        <form id="conversionForm">
+            <label for="xsd_archive">Téléchargez l'archive ZIP contenant vos fichiers XSD :</label>
+            <input type="file" name="xsd_archive" id="xsd_archive" accept=".zip" required>
+
+            <label for="main_xsd_name">Nom du fichier XSD principal dans l'archive (ex: `mon_schema_principal.xsd`) :</label>
+            <input type="text" name="main_xsd_name" id="main_xsd_name" placeholder="Laisser vide si l'archive contient un seul XSD à la racine">
+
+            <div class="options">
+                <input type="checkbox" name="pretty" id="pretty">
+                <label for="pretty">Formater le JSON de sortie (lisible)</label>
+
+                <input type="checkbox" name="no_ref" id="no_ref">
+                <label for="no_ref">Ne pas utiliser de références ($ref) dans le JSON Schema</label>
+            </div>
+
+            <input type="submit" value="Convertir">
+        </form>
+
+        <div class="loading-spinner" id="loadingSpinner"></div>
+        <div class="error-message" id="errorMessage"></div>
+        
+        <h2>JSON Schema Généré :</h2>
+        <pre id="jsonOutput"></pre>
+    </div>
+
+    <script>
+        document.getElementById('conversionForm').addEventListener('submit', async function(event) {
+            event.preventDefault(); // Empêche le rechargement de la page
+
+            const form = event.target;
+            const formData = new FormData(form);
+            const jsonOutput = document.getElementById('jsonOutput');
+            const errorMessage = document.getElementById('errorMessage');
+            const loadingSpinner = document.getElementById('loadingSpinner');
+
+            jsonOutput.textContent = ''; // Vider le résultat précédent
+            errorMessage.textContent = ''; // Vider les erreurs précédentes
+            loadingSpinner.style.display = 'block'; // Afficher le spinner
+
+            try {
+                const response = await fetch('/convert', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    jsonOutput.textContent = JSON.stringify(data, null, 2); // Afficher le JSON formaté
+                } else {
+                    const errorData = await response.json();
+                    errorMessage.textContent = `Erreur : ${errorData.error || 'Une erreur inconnue est survenue.'}`;
+                }
+            } catch (error) {
+                errorMessage.textContent = `Erreur de connexion : ${error.message}`;
+            } finally {
+                loadingSpinner.style.display = 'none'; // Cacher le spinner
+            }
+        });
+    </script>
+</body>
+</html>

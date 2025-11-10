@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           targetNamespace="http://example.com/root"
+           xmlns:root="http://example.com/root"
+           xmlns:com="http://example.com/common"
+           xmlns:prod="http://example.com/products"
+           elementFormDefault="qualified">
+
+    <xs:import namespace="http://example.com/common" schemaLocation="common/types.xsd"/>
+    <xs:import namespace="http://example.com/common" schemaLocation="common/address.xsd"/>
+    <xs:import namespace="http://example.com/products" schemaLocation="products/product_schema.xsd"/>
+
+    <xs:element name="ApplicationData">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="Name" type="xs:string"/>
+                <xs:element name="RootID" type="com:UUIDType"/>
+                <xs:element name="MainAddress" type="com:AddressType"/>
+                <xs:element name="ProductCatalog" type="prod:ProductCatalogType"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+</xs:schema>

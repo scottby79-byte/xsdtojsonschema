@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           targetNamespace="http://example.com/test"
+           xmlns:tns="http://example.com/test"
+           elementFormDefault="qualified"
+           attributeFormDefault="unqualified">
+
+  <!-- Documentation / annotation -->
+  <xs:annotation>
+    <xs:documentation>Schéma de test couvrant : groups, attributeGroup, choice, any, anyAttribute, lists, unions, restrictions, refs, annotations.</xs:documentation>
+  </xs:annotation>
+
+  <!-- Simple types -->
+  <xs:simpleType name="CountryCodeType">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[A-Z]{2}"/>
+      <xs:annotation><xs:documentation>Two letter country code</xs:documentation></xs:annotation>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="IdUnionType">
+    <xs:union memberTypes="xs:integer xs:string"/>
+  </xs:simpleType>
+
+  <xs:simpleType name="TagsList">
+    <xs:list itemType="xs:string"/>
+  </xs:simpleType>
+
+  <!-- Global attribute -->
+  <xs:attribute name="lang" type="xs:language" use="optional">
+    <xs:annotation><xs:documentation>Language code</xs:documentation></xs:annotation>
+  </xs:attribute>
+
+  <!-- AttributeGroup -->
+  <xs:attributeGroup name="addressAttributes">
+    <xs:attribute name="postalCode" type="xs:string" use="required"/>
+    <xs:attribute ref="tns:lang" use="optional"/>
+  </xs:attributeGroup>
+
+  <!-- Model Groups -->
+  <xs:group name="ContactInfoGroup">
+    <xs:sequence>
+      <xs:element name="phone" type="xs:string" minOccurs="0"/>
+      <xs:element name="email" type="xs:string" minOccurs="0"/>
+    </xs:sequence>
+  </xs:group>
+
+  <xs:group name="PersonCoreGroup">
+    <xs:sequence>
+      <xs:element name="firstName" type="xs:string"/>
+      <xs:element name="lastName" type="xs:string"/>
+      <xs:group ref="tns:ContactInfoGroup"/>
+    </xs:sequence>
+  </xs:group>
+
+  <!-- Complex types -->
+  <xs:complexType name="AddressType">
+    <xs:sequence>
+      <xs:element name="street" type="xs:string"/>
+      <xs:element name="city" type="xs:string"/>
+      <xs:element name="country" type="tns:CountryCodeType" minOccurs="0"/>
+      <!-- allow extension content -->
+      <xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attributeGroup ref="tns:addressAttributes"/>
+    <xs:anyAttribute namespace="##other" processContents="lax"/>
+  </xs:complexType>
+
+  <xs:complexType name="EmployeeType">
+    <xs:complexContent>
+      <xs:extension base="xs:anyType">
+        <xs:sequence>
+          <xs:element name="employeeId" type="tns:IdUnionType"/>
+          <xs:element name="position" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="active" type="xs:boolean" default="true"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="CustomerType">
+    <xs:sequence>
+      <xs:element name="customerId" type="xs:integer"/>
+      <xs:element name="loyaltyLevel" type="xs:string" minOccurs="0"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Type that uses a group and choice -->
+  <xs:complexType name="PersonType">
+    <xs:sequence>
+      <xs:group ref="tns:PersonCoreGroup"/>
+      <xs:choice minOccurs="0">
+        <xs:element name="employee" type="tns:EmployeeType"/>
+        <xs:element name="customer" type="tns:CustomerType"/>
+      </xs:choice>
+      <xs:element name="tags" type="tns:TagsList" minOccurs="0"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="tns:IdUnionType" use="required"/>
+  </xs:complexType>
+
+  <!-- Anonymous complex type with choice and nested elements -->
+  <xs:element name="catalog">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:choice minOccurs="0" maxOccurs="unbounded">
+          <xs:element name="product">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="sku" type="xs:string"/>
+                <xs:element name="name" type="xs:string"/>
+                <xs:element name="price" type="xs:decimal"/>
+                <xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded"/>
+              </xs:sequence>
+              <xs:attribute name="available" type="xs:boolean" default="true"/>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="service">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="serviceId" type="xs:string"/>
+                <xs:element name="description" type="xs:string" minOccurs="0"/>
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+        </xs:choice>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- Global elements (to be referenced) -->
+  <xs:element name="address" type="tns:AddressType"/>
+
+  <xs:element name="person" type="tns:PersonType"/>
+
+  <!-- element referring to a global element (ref) -->
+  <xs:element name="resident">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="tns:person"/>
+        <xs:element ref="tns:address" minOccurs="0"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- element demonstrating restriction (enumeration) -->
+  <xs:element name="paymentMethod">
+    <xs:simpleType>
+      <xs:restriction base="xs:string">
+        <xs:enumeration value="CREDIT_CARD"/>
+        <xs:enumeration value="TRANSFER"/>
+        <xs:enumeration value="CASH"/>
+      </xs:restriction>
+    </xs:simpleType>
+  </xs:element>
+
+</xs:schema>

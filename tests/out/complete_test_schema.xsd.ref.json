@@ -1,0 +1,285 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Root Schema for http://example.com/test",
+    "$id": "http://example.com/test/document.json",
+    "oneOf": [
+        {
+            "type": "object",
+            "properties": {
+                "catalog": {
+                    "type": "object",
+                    "oneOf": [
+                        {
+                            "type": "object",
+                            "properties": {
+                                "product": {
+                                    "type": "object",
+                                    "properties": {
+                                        "available": {
+                                            "type": "boolean",
+                                            "default": true
+                                        },
+                                        "sku": {
+                                            "type": "string"
+                                        },
+                                        "name": {
+                                            "type": "string"
+                                        },
+                                        "price": {
+                                            "type": "number"
+                                        },
+                                        "additionalProperties": true
+                                    },
+                                    "required": [
+                                        "name",
+                                        "price",
+                                        "sku"
+                                    ]
+                                }
+                            },
+                            "required": [
+                                "product"
+                            ]
+                        },
+                        {
+                            "type": "object",
+                            "properties": {
+                                "service": {
+                                    "type": "object",
+                                    "properties": {
+                                        "serviceId": {
+                                            "type": "string"
+                                        },
+                                        "description": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "serviceId"
+                                    ]
+                                }
+                            },
+                            "required": [
+                                "service"
+                            ]
+                        }
+                    ]
+                }
+            },
+            "required": [
+                "catalog"
+            ]
+        },
+        {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "$ref": "#/definitions/AddressType"
+                }
+            },
+            "required": [
+                "address"
+            ]
+        },
+        {
+            "type": "object",
+            "properties": {
+                "person": {
+                    "$ref": "#/definitions/PersonType"
+                }
+            },
+            "required": [
+                "person"
+            ]
+        },
+        {
+            "type": "object",
+            "properties": {
+                "resident": {
+                    "type": "object",
+                    "properties": {
+                        "person": {
+                            "$ref": "#/definitions/person"
+                        },
+                        "address": {
+                            "$ref": "#/definitions/address"
+                        }
+                    },
+                    "required": [
+                        "person"
+                    ]
+                }
+            },
+            "required": [
+                "resident"
+            ]
+        },
+        {
+            "type": "object",
+            "properties": {
+                "paymentMethod": {
+                    "type": "string",
+                    "enum": [
+                        "CREDIT_CARD",
+                        "TRANSFER",
+                        "CASH"
+                    ]
+                }
+            },
+            "required": [
+                "paymentMethod"
+            ]
+        }
+    ],
+    "definitions": {
+        "CountryCodeType": {
+            "type": "string",
+            "pattern": "[A-Z]{2}"
+        },
+        "AddressType": {
+            "type": "object",
+            "properties": {
+                "postalCode": {
+                    "type": "string"
+                },
+                "lang": {
+                    "type": "string",
+                    "description": "Language code"
+                },
+                "street": {
+                    "type": "string"
+                },
+                "city": {
+                    "type": "string"
+                },
+                "country": {
+                    "$ref": "#/definitions/CountryCodeType"
+                },
+                "additionalProperties": true
+            },
+            "additionalProperties": true,
+            "required": [
+                "city",
+                "postalCode",
+                "street"
+            ]
+        },
+        "IdUnionType": {
+            "type": [
+                "string",
+                "integer"
+            ]
+        },
+        "group_ContactInfoGroup": {
+            "type": "object",
+            "properties": {
+                "phone": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                }
+            }
+        },
+        "group_PersonCoreGroup": {
+            "type": "object",
+            "properties": {
+                "firstName": {
+                    "type": "string"
+                },
+                "lastName": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "firstName",
+                "lastName"
+            ]
+        },
+        "EmployeeType": {
+            "type": "object",
+            "properties": {
+                "active": {
+                    "type": "boolean",
+                    "default": true
+                },
+                "employeeId": {
+                    "$ref": "#/definitions/IdUnionType"
+                },
+                "position": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "employeeId"
+            ]
+        },
+        "CustomerType": {
+            "type": "object",
+            "properties": {
+                "customerId": {
+                    "type": "integer"
+                },
+                "loyaltyLevel": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "customerId"
+            ]
+        },
+        "TagsList": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "PersonType": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "$ref": "#/definitions/IdUnionType"
+                }
+            },
+            "oneOf": [
+                {
+                    "type": "object",
+                    "properties": {
+                        "employee": {
+                            "$ref": "#/definitions/EmployeeType"
+                        },
+                        "tags": {
+                            "$ref": "#/definitions/TagsList"
+                        }
+                    },
+                    "required": [
+                        "employee"
+                    ]
+                },
+                {
+                    "type": "object",
+                    "properties": {
+                        "customer": {
+                            "$ref": "#/definitions/CustomerType"
+                        },
+                        "tags": {
+                            "$ref": "#/definitions/TagsList"
+                        }
+                    },
+                    "required": [
+                        "customer"
+                    ]
+                }
+            ],
+            "required": [
+                "id"
+            ]
+        },
+        "person": {
+            "$ref": "#/definitions/PersonType"
+        },
+        "address": {
+            "$ref": "#/definitions/AddressType"
+        }
+    }
+}

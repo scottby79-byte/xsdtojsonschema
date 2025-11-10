@@ -1,0 +1,394 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Root Schema for http://example.com/test",
+    "$id": "http://example.com/test/document.json",
+    "oneOf": [
+        {
+            "type": "object",
+            "properties": {
+                "catalog": {
+                    "type": "object",
+                    "oneOf": [
+                        {
+                            "type": "object",
+                            "properties": {
+                                "product": {
+                                    "type": "object",
+                                    "properties": {
+                                        "available": {
+                                            "type": "boolean",
+                                            "default": true
+                                        },
+                                        "sku": {
+                                            "type": "string"
+                                        },
+                                        "name": {
+                                            "type": "string"
+                                        },
+                                        "price": {
+                                            "type": "number"
+                                        },
+                                        "additionalProperties": true
+                                    },
+                                    "required": [
+                                        "name",
+                                        "price",
+                                        "sku"
+                                    ]
+                                }
+                            },
+                            "required": [
+                                "product"
+                            ]
+                        },
+                        {
+                            "type": "object",
+                            "properties": {
+                                "service": {
+                                    "type": "object",
+                                    "properties": {
+                                        "serviceId": {
+                                            "type": "string"
+                                        },
+                                        "description": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "serviceId"
+                                    ]
+                                }
+                            },
+                            "required": [
+                                "service"
+                            ]
+                        }
+                    ]
+                }
+            },
+            "required": [
+                "catalog"
+            ]
+        },
+        {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "object",
+                    "properties": {
+                        "postalCode": {
+                            "type": "string"
+                        },
+                        "lang": {
+                            "type": "string",
+                            "description": "Language code"
+                        },
+                        "street": {
+                            "type": "string"
+                        },
+                        "city": {
+                            "type": "string"
+                        },
+                        "country": {
+                            "type": "string",
+                            "pattern": "[A-Z]{2}"
+                        },
+                        "additionalProperties": true
+                    },
+                    "additionalProperties": true,
+                    "required": [
+                        "city",
+                        "postalCode",
+                        "street"
+                    ]
+                }
+            },
+            "required": [
+                "address"
+            ]
+        },
+        {
+            "type": "object",
+            "properties": {
+                "person": {
+                    "type": "object",
+                    "properties": {
+                        "id": {
+                            "type": [
+                                "string",
+                                "integer"
+                            ]
+                        }
+                    },
+                    "oneOf": [
+                        {
+                            "type": "object",
+                            "properties": {
+                                "firstName": {
+                                    "type": "string"
+                                },
+                                "lastName": {
+                                    "type": "string"
+                                },
+                                "phone": {
+                                    "type": "string"
+                                },
+                                "email": {
+                                    "type": "string"
+                                },
+                                "employee": {
+                                    "type": "object",
+                                    "properties": {
+                                        "active": {
+                                            "type": "boolean",
+                                            "default": true
+                                        },
+                                        "employeeId": {
+                                            "type": [
+                                                "string",
+                                                "integer"
+                                            ]
+                                        },
+                                        "position": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "employeeId"
+                                    ]
+                                },
+                                "tags": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                }
+                            },
+                            "required": [
+                                "firstName",
+                                "lastName",
+                                "employee"
+                            ]
+                        },
+                        {
+                            "type": "object",
+                            "properties": {
+                                "firstName": {
+                                    "type": "string"
+                                },
+                                "lastName": {
+                                    "type": "string"
+                                },
+                                "phone": {
+                                    "type": "string"
+                                },
+                                "email": {
+                                    "type": "string"
+                                },
+                                "customer": {
+                                    "type": "object",
+                                    "properties": {
+                                        "customerId": {
+                                            "type": "integer"
+                                        },
+                                        "loyaltyLevel": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "customerId"
+                                    ]
+                                },
+                                "tags": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                }
+                            },
+                            "required": [
+                                "firstName",
+                                "lastName",
+                                "customer"
+                            ]
+                        }
+                    ],
+                    "required": [
+                        "id"
+                    ]
+                }
+            },
+            "required": [
+                "person"
+            ]
+        },
+        {
+            "type": "object",
+            "properties": {
+                "resident": {
+                    "type": "object",
+                    "properties": {
+                        "person": {
+                            "type": "object",
+                            "properties": {
+                                "id": {
+                                    "type": [
+                                        "string",
+                                        "integer"
+                                    ]
+                                }
+                            },
+                            "oneOf": [
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "firstName": {
+                                            "type": "string"
+                                        },
+                                        "lastName": {
+                                            "type": "string"
+                                        },
+                                        "phone": {
+                                            "type": "string"
+                                        },
+                                        "email": {
+                                            "type": "string"
+                                        },
+                                        "employee": {
+                                            "type": "object",
+                                            "properties": {
+                                                "active": {
+                                                    "type": "boolean",
+                                                    "default": true
+                                                },
+                                                "employeeId": {
+                                                    "type": [
+                                                        "string",
+                                                        "integer"
+                                                    ]
+                                                },
+                                                "position": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "employeeId"
+                                            ]
+                                        },
+                                        "tags": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "firstName",
+                                        "lastName",
+                                        "employee"
+                                    ]
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "firstName": {
+                                            "type": "string"
+                                        },
+                                        "lastName": {
+                                            "type": "string"
+                                        },
+                                        "phone": {
+                                            "type": "string"
+                                        },
+                                        "email": {
+                                            "type": "string"
+                                        },
+                                        "customer": {
+                                            "type": "object",
+                                            "properties": {
+                                                "customerId": {
+                                                    "type": "integer"
+                                                },
+                                                "loyaltyLevel": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "customerId"
+                                            ]
+                                        },
+                                        "tags": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "firstName",
+                                        "lastName",
+                                        "customer"
+                                    ]
+                                }
+                            ],
+                            "required": [
+                                "id"
+                            ]
+                        },
+                        "address": {
+                            "type": "object",
+                            "properties": {
+                                "postalCode": {
+                                    "type": "string"
+                                },
+                                "lang": {
+                                    "type": "string",
+                                    "description": "Language code"
+                                },
+                                "street": {
+                                    "type": "string"
+                                },
+                                "city": {
+                                    "type": "string"
+                                },
+                                "country": {
+                                    "type": "string",
+                                    "pattern": "[A-Z]{2}"
+                                },
+                                "additionalProperties": true
+                            },
+                            "additionalProperties": true,
+                            "required": [
+                                "city",
+                                "postalCode",
+                                "street"
+                            ]
+                        }
+                    },
+                    "required": [
+                        "person"
+                    ]
+                }
+            },
+            "required": [
+                "resident"
+            ]
+        },
+        {
+            "type": "object",
+            "properties": {
+                "paymentMethod": {
+                    "type": "string",
+                    "enum": [
+                        "CREDIT_CARD",
+                        "TRANSFER",
+                        "CASH"
+                    ]
+                }
+            },
+            "required": [
+                "paymentMethod"
+            ]
+        }
+    ]
+}

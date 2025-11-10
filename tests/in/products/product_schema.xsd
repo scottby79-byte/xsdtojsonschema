@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           targetNamespace="http://example.com/products"
+           xmlns:tns="http://example.com/products"
+           elementFormDefault="qualified">
+
+    <xs:complexType name="ProductType">
+        <xs:sequence>
+            <xs:element name="ProductID" type="xs:string"/>
+            <xs:element name="ProductName" type="xs:string"/>
+            <xs:element name="Price" type="xs:decimal"/>
+            <xs:element name="isForSale" type="xs:boolean"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ProductCatalogType">
+        <xs:sequence>
+            <xs:element name="Product" type="tns:ProductType" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="referenced" type="xs:boolean" use="required"/>
+    </xs:complexType>
+
+</xs:schema>
