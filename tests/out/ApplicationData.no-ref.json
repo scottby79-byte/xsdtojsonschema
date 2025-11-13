@@ -37,9 +37,6 @@
                 "ProductCatalog": {
                     "type": "object",
                     "properties": {
-                        "referenced": {
-                            "type": "boolean"
-                        },
                         "Product": {
                             "type": "array",
                             "items": {
@@ -66,6 +63,9 @@
                                 ]
                             },
                             "minItems": 1
+                        },
+                        "referenced": {
+                            "type": "boolean"
                         }
                     },
                     "required": [

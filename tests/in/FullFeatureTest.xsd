@@ -44,6 +44,9 @@
 
     <xs:complexType name="T_DocumentBase" abstract="true">
         <xs:attributeGroup ref="tns:AG_Metadonnees"/>
+        <xs:sequence>
+            <xs:group ref="tns:G_InformationsBase"/>
+        </xs:sequence>
     </xs:complexType>
 
     <xs:complexType name="T_DocumentAvecClient">

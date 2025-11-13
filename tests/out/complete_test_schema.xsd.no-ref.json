@@ -7,7 +7,6 @@
             "type": "object",
             "properties": {
                 "catalog": {
-                    "type": "object",
                     "oneOf": [
                         {
                             "type": "object",
@@ -15,10 +14,6 @@
                                 "product": {
                                     "type": "object",
                                     "properties": {
-                                        "available": {
-                                            "type": "boolean",
-                                            "default": true
-                                        },
                                         "sku": {
                                             "type": "string"
                                         },
@@ -28,7 +23,11 @@
                                         "price": {
                                             "type": "number"
                                         },
-                                        "additionalProperties": true
+                                        "additionalProperties": true,
+                                        "available": {
+                                            "type": "boolean",
+                                            "default": true
+                                        }
                                     },
                                     "required": [
                                         "name",
@@ -76,13 +75,6 @@
                 "address": {
                     "type": "object",
                     "properties": {
-                        "postalCode": {
-                            "type": "string"
-                        },
-                        "lang": {
-                            "type": "string",
-                            "description": "Language code"
-                        },
                         "street": {
                             "type": "string"
                         },
@@ -93,7 +85,14 @@
                             "type": "string",
                             "pattern": "[A-Z]{2}"
                         },
-                        "additionalProperties": true
+                        "additionalProperties": true,
+                        "postalCode": {
+                            "type": "string"
+                        },
+                        "lang": {
+                            "type": "string",
+                            "description": "Language code"
+                        }
                     },
                     "additionalProperties": true,
                     "required": [
@@ -111,15 +110,6 @@
             "type": "object",
             "properties": {
                 "person": {
-                    "type": "object",
-                    "properties": {
-                        "id": {
-                            "type": [
-                                "integer",
-                                "string"
-                            ]
-                        }
-                    },
                     "oneOf": [
                         {
                             "type": "object",
@@ -139,18 +129,18 @@
                                 "employee": {
                                     "type": "object",
                                     "properties": {
-                                        "active": {
-                                            "type": "boolean",
-                                            "default": true
-                                        },
                                         "employeeId": {
                                             "type": [
-                                                "integer",
-                                                "string"
+                                                "string",
+                                                "integer"
                                             ]
                                         },
                                         "position": {
                                             "type": "string"
+                                        },
+                                        "active": {
+                                            "type": "boolean",
+                                            "default": true
                                         }
                                     },
                                     "required": [
@@ -213,6 +203,14 @@
                             ]
                         }
                     ],
+                    "properties": {
+                        "id": {
+                            "type": [
+                                "string",
+                                "integer"
+                            ]
+                        }
+                    },
                     "required": [
                         "id"
                     ]
@@ -229,15 +227,6 @@
                     "type": "object",
                     "properties": {
                         "person": {
-                            "type": "object",
-                            "properties": {
-                                "id": {
-                                    "type": [
-                                        "integer",
-                                        "string"
-                                    ]
-                                }
-                            },
                             "oneOf": [
                                 {
                                     "type": "object",
@@ -257,18 +246,18 @@
                                         "employee": {
                                             "type": "object",
                                             "properties": {
-                                                "active": {
-                                                    "type": "boolean",
-                                                    "default": true
-                                                },
                                                 "employeeId": {
                                                     "type": [
-                                                        "integer",
-                                                        "string"
+                                                        "string",
+                                                        "integer"
                                                     ]
                                                 },
                                                 "position": {
                                                     "type": "string"
+                                                },
+                                                "active": {
+                                                    "type": "boolean",
+                                                    "default": true
                                                 }
                                             },
                                             "required": [
@@ -331,6 +320,14 @@
                                     ]
                                 }
                             ],
+                            "properties": {
+                                "id": {
+                                    "type": [
+                                        "string",
+                                        "integer"
+                                    ]
+                                }
+                            },
                             "required": [
                                 "id"
                             ]
@@ -338,13 +335,6 @@
                         "address": {
                             "type": "object",
                             "properties": {
-                                "postalCode": {
-                                    "type": "string"
-                                },
-                                "lang": {
-                                    "type": "string",
-                                    "description": "Language code"
-                                },
                                 "street": {
                                     "type": "string"
                                 },
@@ -355,7 +345,14 @@
                                     "type": "string",
                                     "pattern": "[A-Z]{2}"
                                 },
-                                "additionalProperties": true
+                                "additionalProperties": true,
+                                "postalCode": {
+                                    "type": "string"
+                                },
+                                "lang": {
+                                    "type": "string",
+                                    "description": "Language code"
+                                }
                             },
                             "additionalProperties": true,
                             "required": [

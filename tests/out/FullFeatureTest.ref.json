@@ -50,6 +50,28 @@
                 "dateCreation"
             ]
         },
+        "T_Article": {
+            "type": "object",
+            "properties": {
+                "reference": {
+                    "type": "string"
+                },
+                "commentaire": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "maxItems": 5
+                },
+                "quantite": {
+                    "type": "integer"
+                }
+            },
+            "required": [
+                "quantite",
+                "reference"
+            ]
+        },
         "T_CodePostal": {
             "type": "string",
             "pattern": "[0-9]{5}",
@@ -83,17 +105,107 @@
             ]
         },
         "T_Commande": {
-            "type": "object",
             "oneOf": [
                 {
                     "type": "object",
                     "properties": {
+                        "dateCreation": {
+                            "type": "string"
+                        },
+                        "priorite": {
+                            "$ref": "#/definitions/T_NiveauPriorite"
+                        },
                         "produitSimple": {
+                            "type": "string"
+                        },
+                        "carte": {
+                            "$ref": "#/definitions/T_CodePostal"
+                        }
+                    },
+                    "required": [
+                        "dateCreation",
+                        "produitSimple",
+                        "carte"
+                    ]
+                },
+                {
+                    "type": "object",
+                    "properties": {
+                        "dateCreation": {
+                            "type": "string"
+                        },
+                        "priorite": {
+                            "$ref": "#/definitions/T_NiveauPriorite"
+                        },
+                        "produitSimple": {
+                            "type": "string"
+                        },
+                        "virement": {
                             "type": "string"
                         }
                     },
                     "required": [
-                        "produitSimple"
+                        "dateCreation",
+                        "produitSimple",
+                        "virement"
+                    ]
+                },
+                {
+                    "type": "object",
+                    "properties": {
+                        "dateCreation": {
+                            "type": "string"
+                        },
+                        "priorite": {
+                            "$ref": "#/definitions/T_NiveauPriorite"
+                        },
+                        "ligneArticle": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/T_Article"
+                            },
+                            "minItems": 1
+                        },
+                        "taxe": {
+                            "type": "number"
+                        },
+                        "carte": {
+                            "$ref": "#/definitions/T_CodePostal"
+                        }
+                    },
+                    "required": [
+                        "dateCreation",
+                        "ligneArticle",
+                        "carte"
+                    ]
+                },
+                {
+                    "type": "object",
+                    "properties": {
+                        "dateCreation": {
+                            "type": "string"
+                        },
+                        "priorite": {
+                            "$ref": "#/definitions/T_NiveauPriorite"
+                        },
+                        "ligneArticle": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/T_Article"
+                            },
+                            "minItems": 1
+                        },
+                        "taxe": {
+                            "type": "number"
+                        },
+                        "virement": {
+                            "type": "string"
+                        }
+                    },
+                    "required": [
+                        "dateCreation",
+                        "ligneArticle",
+                        "virement"
                     ]
                 }
             ]
@@ -101,6 +213,12 @@
         "T_DocumentBase": {
             "type": "object",
             "properties": {
+                "dateCreation": {
+                    "type": "string"
+                },
+                "priorite": {
+                    "$ref": "#/definitions/T_NiveauPriorite"
+                },
                 "id": {
                     "type": "string"
                 },
@@ -110,6 +228,7 @@
                 }
             },
             "required": [
+                "dateCreation",
                 "id"
             ]
         },
@@ -135,17 +254,32 @@
         "T_DocumentAvecClient": {
             "type": "object",
             "properties": {
-                "statut": {
+                "dateCreation": {
                     "type": "string"
+                },
+                "priorite": {
+                    "$ref": "#/definitions/T_NiveauPriorite"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "number",
+                    "default": 1.0
                 },
                 "nomClient": {
                     "type": "string"
                 },
                 "adresseLivraison": {
                     "$ref": "#/definitions/T_Adresse"
+                },
+                "statut": {
+                    "type": "string"
                 }
             },
             "required": [
+                "dateCreation",
+                "id",
                 "nomClient"
             ]
         }

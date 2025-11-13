@@ -82,15 +82,15 @@
         "ProductCatalogType": {
             "type": "object",
             "properties": {
-                "referenced": {
-                    "type": "boolean"
-                },
                 "Product": {
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/ProductType"
                     },
                     "minItems": 1
+                },
+                "referenced": {
+                    "type": "boolean"
                 }
             },
             "required": [

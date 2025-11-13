@@ -7,7 +7,6 @@
             "type": "object",
             "properties": {
                 "CommandeRoot": {
-                    "type": "object",
                     "oneOf": [
                         {
                             "type": "object",
@@ -26,16 +25,7 @@
                                 },
                                 "produitSimple": {
                                     "type": "string"
-                                }
-                            },
-                            "required": [
-                                "dateCreation",
-                                "produitSimple"
-                            ]
-                        },
-                        {
-                            "type": "object",
-                            "properties": {
+                                },
                                 "carte": {
                                     "type": "string",
                                     "pattern": "[0-9]{5}",
@@ -44,17 +34,147 @@
                                 }
                             },
                             "required": [
+                                "dateCreation",
+                                "produitSimple",
                                 "carte"
                             ]
                         },
                         {
                             "type": "object",
                             "properties": {
+                                "dateCreation": {
+                                    "type": "string"
+                                },
+                                "priorite": {
+                                    "type": "integer",
+                                    "enum": [
+                                        1,
+                                        2
+                                    ],
+                                    "minimum": 0,
+                                    "maximum": 5
+                                },
+                                "produitSimple": {
+                                    "type": "string"
+                                },
                                 "virement": {
                                     "type": "string"
                                 }
                             },
                             "required": [
+                                "dateCreation",
+                                "produitSimple",
+                                "virement"
+                            ]
+                        },
+                        {
+                            "type": "object",
+                            "properties": {
+                                "dateCreation": {
+                                    "type": "string"
+                                },
+                                "priorite": {
+                                    "type": "integer",
+                                    "enum": [
+                                        1,
+                                        2
+                                    ],
+                                    "minimum": 0,
+                                    "maximum": 5
+                                },
+                                "ligneArticle": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "reference": {
+                                                "type": "string"
+                                            },
+                                            "commentaire": {
+                                                "type": "array",
+                                                "items": {
+                                                    "type": "string"
+                                                },
+                                                "maxItems": 5
+                                            },
+                                            "quantite": {
+                                                "type": "integer"
+                                            }
+                                        },
+                                        "required": [
+                                            "quantite",
+                                            "reference"
+                                        ]
+                                    },
+                                    "minItems": 1
+                                },
+                                "taxe": {
+                                    "type": "number"
+                                },
+                                "carte": {
+                                    "type": "string",
+                                    "pattern": "[0-9]{5}",
+                                    "minLength": 5,
+                                    "maxLength": 5
+                                }
+                            },
+                            "required": [
+                                "dateCreation",
+                                "ligneArticle",
+                                "carte"
+                            ]
+                        },
+                        {
+                            "type": "object",
+                            "properties": {
+                                "dateCreation": {
+                                    "type": "string"
+                                },
+                                "priorite": {
+                                    "type": "integer",
+                                    "enum": [
+                                        1,
+                                        2
+                                    ],
+                                    "minimum": 0,
+                                    "maximum": 5
+                                },
+                                "ligneArticle": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "reference": {
+                                                "type": "string"
+                                            },
+                                            "commentaire": {
+                                                "type": "array",
+                                                "items": {
+                                                    "type": "string"
+                                                },
+                                                "maxItems": 5
+                                            },
+                                            "quantite": {
+                                                "type": "integer"
+                                            }
+                                        },
+                                        "required": [
+                                            "quantite",
+                                            "reference"
+                                        ]
+                                    },
+                                    "minItems": 1
+                                },
+                                "taxe": {
+                                    "type": "number"
+                                },
+                                "virement": {
+                                    "type": "string"
+                                }
+                            },
+                            "required": [
+                                "dateCreation",
+                                "ligneArticle",
                                 "virement"
                             ]
                         }
@@ -71,15 +191,24 @@
                 "ClientDocument": {
                     "type": "object",
                     "properties": {
+                        "dateCreation": {
+                            "type": "string"
+                        },
+                        "priorite": {
+                            "type": "integer",
+                            "enum": [
+                                1,
+                                2
+                            ],
+                            "minimum": 0,
+                            "maximum": 5
+                        },
                         "id": {
                             "type": "string"
                         },
                         "version": {
                             "type": "number",
                             "default": 1.0
-                        },
-                        "statut": {
-                            "type": "string"
                         },
                         "nomClient": {
                             "type": "string"
@@ -105,9 +234,13 @@
                                 "rue",
                                 "ville"
                             ]
+                        },
+                        "statut": {
+                            "type": "string"
                         }
                     },
                     "required": [
+                        "dateCreation",
                         "id",
                         "nomClient"
                     ]

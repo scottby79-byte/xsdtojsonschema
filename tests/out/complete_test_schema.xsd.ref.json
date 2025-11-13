@@ -7,7 +7,6 @@
             "type": "object",
             "properties": {
                 "catalog": {
-                    "type": "object",
                     "oneOf": [
                         {
                             "type": "object",
@@ -15,10 +14,6 @@
                                 "product": {
                                     "type": "object",
                                     "properties": {
-                                        "available": {
-                                            "type": "boolean",
-                                            "default": true
-                                        },
                                         "sku": {
                                             "type": "string"
                                         },
@@ -28,7 +23,11 @@
                                         "price": {
                                             "type": "number"
                                         },
-                                        "additionalProperties": true
+                                        "additionalProperties": true,
+                                        "available": {
+                                            "type": "boolean",
+                                            "default": true
+                                        }
                                     },
                                     "required": [
                                         "name",
@@ -139,13 +138,6 @@
         "AddressType": {
             "type": "object",
             "properties": {
-                "postalCode": {
-                    "type": "string"
-                },
-                "lang": {
-                    "type": "string",
-                    "description": "Language code"
-                },
                 "street": {
                     "type": "string"
                 },
@@ -155,19 +147,20 @@
                 "country": {
                     "$ref": "#/definitions/CountryCodeType"
                 },
-                "additionalProperties": true
+                "additionalProperties": true,
+                "postalCode": {
+                    "type": "string"
+                },
+                "lang": {
+                    "type": "string",
+                    "description": "Language code"
+                }
             },
             "additionalProperties": true,
             "required": [
                 "city",
                 "postalCode",
                 "street"
-            ]
-        },
-        "IdUnionType": {
-            "type": [
-                "string",
-                "integer"
             ]
         },
         "group_ContactInfoGroup": {
@@ -189,6 +182,12 @@
                 },
                 "lastName": {
                     "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
                 }
             },
             "required": [
@@ -196,18 +195,24 @@
                 "lastName"
             ]
         },
+        "IdUnionType": {
+            "type": [
+                "string",
+                "integer"
+            ]
+        },
         "EmployeeType": {
             "type": "object",
             "properties": {
-                "active": {
-                    "type": "boolean",
-                    "default": true
-                },
                 "employeeId": {
                     "$ref": "#/definitions/IdUnionType"
                 },
                 "position": {
                     "type": "string"
+                },
+                "active": {
+                    "type": "boolean",
+                    "default": true
                 }
             },
             "required": [
@@ -235,16 +240,22 @@
             }
         },
         "PersonType": {
-            "type": "object",
-            "properties": {
-                "id": {
-                    "$ref": "#/definitions/IdUnionType"
-                }
-            },
             "oneOf": [
                 {
                     "type": "object",
                     "properties": {
+                        "firstName": {
+                            "type": "string"
+                        },
+                        "lastName": {
+                            "type": "string"
+                        },
+                        "phone": {
+                            "type": "string"
+                        },
+                        "email": {
+                            "type": "string"
+                        },
                         "employee": {
                             "$ref": "#/definitions/EmployeeType"
                         },
@@ -253,12 +264,26 @@
                         }
                     },
                     "required": [
+                        "firstName",
+                        "lastName",
                         "employee"
                     ]
                 },
                 {
                     "type": "object",
                     "properties": {
+                        "firstName": {
+                            "type": "string"
+                        },
+                        "lastName": {
+                            "type": "string"
+                        },
+                        "phone": {
+                            "type": "string"
+                        },
+                        "email": {
+                            "type": "string"
+                        },
                         "customer": {
                             "$ref": "#/definitions/CustomerType"
                         },
@@ -267,10 +292,17 @@
                         }
                     },
                     "required": [
+                        "firstName",
+                        "lastName",
                         "customer"
                     ]
                 }
             ],
+            "properties": {
+                "id": {
+                    "$ref": "#/definitions/IdUnionType"
+                }
+            },
             "required": [
                 "id"
             ]
