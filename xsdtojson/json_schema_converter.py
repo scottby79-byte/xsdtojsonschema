@@ -416,18 +416,14 @@ class XSDToJsonSchemaConverter:
 
     def _process_sequence_content(self, parent_node: etree.Element, current_xsd_root: etree.Element) -> Tuple[Dict[str, dict], List[str], Optional[List[dict]]]:
         """
-        Traite le contenu d'un xs:sequence ou xs:all et détermine si un 'oneOf' est nécessaire.
-
-        Returns:
-            - current_properties: Propriétés simples (non-choix) accumulées.
-            - current_required: Liste des champs requis pour ces propriétés simples.
-            - oneOf_options: Liste des options de oneOf si un choix a été rencontré.
+        Traite le contenu d'un xs:sequence ou xs:all. Gère l'accumulation de propriétés
+        simples et la combinaison avec des 'oneOf' (choix ou groupes de choix).
         """
         current_properties: Dict[str, dict] = {}
         current_required: List[str] = []
         oneOf_options: List[dict] = []
         
-        # Indique si un oneOf a déjà été initialisé (permet de distinguer combinaison vs. aplatissement)
+        # Indique si un oneOf a déjà été initialisé.
         is_combining = False 
 
         for child_node in parent_node.iterchildren():
@@ -436,12 +432,13 @@ class XSDToJsonSchemaConverter:
 
             tag_name = etree.QName(child_node).localname
 
+            # --- 1. Gestion des ÉLÉMENTS simples ---
             if tag_name == "element":
                 element_schema, final_element_name, min_occurs = self._parse_element_for_content(child_node, current_xsd_root)
                 if not final_element_name: continue
                 
                 if is_combining:
-                    # CAS 1: Un oneOf est déjà actif. On ajoute la nouvelle propriété à TOUTES les options.
+                    # Ajout à TOUTES les options oneOf existantes
                     for option in oneOf_options:
                         if final_element_name not in option.get("properties", {}):
                             option.get("properties", {})[final_element_name] = element_schema
@@ -449,31 +446,63 @@ class XSDToJsonSchemaConverter:
                                 if "required" not in option: option["required"] = []
                                 option["required"].append(final_element_name)
                 else:
-                    # CAS 2: Pas de oneOf actif. On accumule la propriété dans la structure simple.
+                    # Accumulation simple
                     current_properties[final_element_name] = element_schema
                     if min_occurs > 0:
                         current_required.append(final_element_name)
                             
+            # --- 2. Gestion des GROUPES de modèles (simples ou oneOf) ---
             elif tag_name == "group":
                 group_ref_name = child_node.get("ref")
                 if group_ref_name:
                     group_schema = self._resolve_model_group(group_ref_name, current_xsd_root)
                     
-                    group_options = group_schema.get("oneOf", [])
+                    # Résolution du $ref pour obtenir les propriétés réelles
+                    resolved_group_schema = group_schema
+                    if "$ref" in group_schema:
+                        ref_name = group_schema["$ref"].split("/")[-1]
+                        if hasattr(self, 'json_schema_definitions') and ref_name in self.json_schema_definitions:
+                            resolved_group_schema = self.json_schema_definitions[ref_name]
                     
+                    group_options = resolved_group_schema.get("oneOf", [])
+                    group_props = resolved_group_schema.get("properties", {})
+                    group_reqs = resolved_group_schema.get("required", [])
+
+
                     if group_options:
+                        # Cas 2a: Le groupe lui-même est un Choix (oneOf)
                         is_combining = True
                         
                         if oneOf_options:
-                            # SCÉNARIO A: APLATISSEMENT (Choix successifs : (A|B), (C|D) -> oneOf[A, B, C, D])
-                            oneOf_options.extend(group_options) 
+                            # CORRECTION CRITIQUE: COMBINAISON (Choix * Choix) - Multiplie les options existantes par les nouvelles options du groupe
+                            new_oneOf_options = []
+                            
+                            for existing_opt in oneOf_options:
+                                existing_props = existing_opt.get("properties", {})
+                                existing_reqs = existing_opt.get("required", [])
+
+                                for new_group_opt in group_options:
+                                    # Cloner et fusionner
+                                    combined_properties = existing_props.copy()
+                                    combined_required = existing_reqs.copy()
+                                    
+                                    # Merge new group properties/required into existing_opt clone
+                                    self._merge_properties_non_overwriting(combined_properties, new_group_opt.get("properties", {}))
+                                    combined_required.extend(new_group_opt.get("required", []))
+                                    
+                                    new_oneOf_options.append({
+                                        "type": "object",
+                                        "properties": combined_properties,
+                                        "required": combined_required,
+                                    })
+                            
+                            oneOf_options = new_oneOf_options # Remplacer l'ancien oneOf par le nouveau combiné
+                        
                         else:
-                            # SCÉNARIO B: COMBINAISON (Éléments simples précédents suivis d'un choix : (X, Y), (A|B))
+                            # Initialisation ou Combinaison de propriétés simples (précédentes) avec ce nouveau choix
                             if not current_properties and not current_required:
-                                # Le groupe est le premier élément et contient un oneOf
                                 oneOf_options.extend(group_options)
                             else:
-                                # Le groupe est précédé de propriétés simples : fusion avec chaque option.
                                 for group_opt in group_options:
                                     combined_properties = current_properties.copy()
                                     combined_properties.update(group_opt.get("properties", {})) 
@@ -487,40 +516,44 @@ class XSDToJsonSchemaConverter:
                                         "required": combined_required,
                                     })
                                 
-                                # Les propriétés accumulées sont transférées dans le oneOf et effacées du contexte simple.
+                                # Les propriétés accumulées PRÉCÉDENTES sont transférées et effacées.
                                 current_properties = {}
                                 current_required = []
 
-                    elif group_schema.get("properties"):
-                        # Cas où le groupe est une séquence/all simple : fusion des propriétés
+
+                    elif group_props:
+                        # Cas 2b: Le groupe est une SÉQUENCE/ALL SIMPLE : fusion des propriétés
+                        
                         if is_combining:
-                            # Fusion dans les options oneOf existantes
+                            # Fusion dans TOUTES les options oneOf existantes
                             for option in oneOf_options:
-                                self._merge_properties_non_overwriting(option.get("properties", {}), group_schema["properties"])
+                                # Fusion non-écrasante des propriétés
+                                self._merge_properties_non_overwriting(option.get("properties", {}), group_props)
+                                # Ajout des requis
                                 if "required" in option:
-                                     option["required"].extend(group_schema.get("required", []))
+                                     option["required"].extend(group_reqs)
                                 else:
-                                     option["required"] = group_schema.get("required", [])
+                                     option["required"] = group_reqs
 
                         else:
-                            # Fusion simple
-                            current_properties.update(group_schema.get("properties", {}))
-                            current_required.extend(group_schema.get("required", []))
+                            # Fusion simple (pas de oneOf actif)
+                            current_properties.update(group_props)
+                            current_required.extend(group_reqs)
                         
+            # --- 3. Gestion du CHOIX ---
             elif tag_name == "choice":
+                # Le xs:choice force le mode 'combining'
                 is_combining = True
                 choice_schema_list = self._parse_choice(child_node, current_xsd_root)
                 
                 if oneOf_options:
-                    # SCÉNARIO A: APLATISSEMENT (Choix successifs)
+                    # APLATISSEMENT (Choix successifs)
                     oneOf_options.extend(choice_schema_list) 
                 else:
-                    # SCÉNARIO B: COMBINAISON (Éléments simples précédents suivis d'un choix)
+                    # Initialisation ou Combinaison de propriétés simples (précédentes) avec le choix
                     if not current_properties and not current_required:
-                        # Le choix est le premier élément
                         oneOf_options.extend(choice_schema_list)
                     else:
-                        # Le choix est précédé de propriétés simples : fusion avec chaque option.
                         for choice_opt in choice_schema_list:
                             combined_properties = current_properties.copy()
                             combined_properties.update(choice_opt.get("properties", {}))
@@ -534,114 +567,169 @@ class XSDToJsonSchemaConverter:
                                 "required": combined_required,
                             })
 
-                    # Les propriétés accumulées sont transférées dans le oneOf et effacées du contexte simple.
+                    # Les propriétés accumulées PRÉCÉDENTES sont transférées et effacées.
                     current_properties = {}
                     current_required = []
 
+            # --- 4. Gestion de 'xs:any' ---
             elif tag_name == "any":
-                 # Gère xs:any
                  if not is_combining:
                      current_properties["additionalProperties"] = True
                  else:
                      for option in oneOf_options:
                          option["additionalProperties"] = True
             
-        # Nettoyage final : suppression des tableaux 'required' vides dans les options oneOf
+        # --- 5. Nettoyage Final ---
         if oneOf_options:
             for option in oneOf_options:
+                # Nettoyage des tableaux 'required' vides
                 if "required" in option and not option["required"]:
                     del option["required"]
+                # S'assurer que chaque option a 'type: object'
+                if "type" not in option:
+                    option["type"] = "object"
 
         return current_properties, current_required, oneOf_options if oneOf_options else None
 
-    # --- Reste des méthodes principales ---
 
     def _parse_complex_type(self, complex_type_node: etree.Element, current_xsd_root: etree.Element, parent_element_name: Optional[str] = None) -> dict:
         """ 
-        Parse un xs:complexType, gérant l'héritage (extension), les attributs, et le contenu (sequence/choice/all). 
+        Parse un xs:complexType. 
+        
+        Correction: Ajout d'une logique de secours pour forcer la résolution du contenu 
+        du type de base si le cache a retourné une définition incomplète, garantissant 
+        l'héritage des propriétés de groupe (dateCreation, priorite).
         """
-        # ... (Logique de parsing de type complexe) ...
-        schema: Dict[str, Any] = {}
+        schema: Dict[str, Any] = {"type": "object", "properties": {}}
         required_fields: List[str] = []
         target_content_node = complex_type_node
+        is_extension = False 
 
-        schema["type"] = "object"
-        schema["properties"] = {}
-        
-        # 1. Gestion de xs:complexContent (Héritage/Extension)
+        # --- BLOC 1: GESTION DE L'HÉRITAGE (Uniquement si le type est DERIVÉ) ---
         complex_content_node = complex_type_node.find(f"{XSD_NS}complexContent")
         if complex_content_node is not None:
             extension_node = complex_content_node.find(f"{XSD_NS}extension")
             
             if extension_node is not None:
+                is_extension = True
                 base_qname = extension_node.get("base")
                 
                 if base_qname and base_qname != "xs:anyType":
-                    base_schema = self._get_type_schema(base_qname, complex_type_node, current_xsd_root)
-                    
-                    if base_schema.get("type") == "object":
-                        schema["properties"].update(base_schema.get("properties", {}))
-                        required_fields.extend(base_schema.get("required", []))
-                        
-                target_content_node = extension_node
+                    base_schema_result = self._get_type_schema(base_qname, complex_type_node, current_xsd_root)
+                    resolved_base_schema = base_schema_result
 
-        # 2. Processus des Attributs (y compris attributeGroup et anyAttribute)
+                    # 1. RESOLUTION DE REF POUR FUSION (Étape critique)
+                    if "$ref" in base_schema_result:
+                        ref_name = base_schema_result["$ref"].split("/")[-1]
+                        if hasattr(self, 'json_schema_definitions') and ref_name in self.json_schema_definitions:
+                            resolved_base_schema = self.json_schema_definitions[ref_name]
+                    
+                    # 2. PRÉPARATION DE LA FUSION
+                    base_props = resolved_base_schema.get("properties", {})
+                    base_required_fields = resolved_base_schema.get("required", [])
+
+                    # 🔑 CORRECTION CRITIQUE DU CACHE: Si le schéma de base est un objet mais est vide,
+                    # il s'agit d'une coquille incomplète du cache. On force la recherche du nœud XSD pour re-résoudre.
+                    if resolved_base_schema.get("type") == "object" and not base_props and base_qname is not None:
+                        
+                        prefix, local_type_name = (base_qname.split(":") if ":" in base_qname else (None, base_qname))
+                        base_node = None
+                        context_root = current_xsd_root
+
+                        # 2.1. RECHERCHE DU NŒUD XSD DE LA BASE (Logique réutilisée de _resolve_type)
+                        for r_elem in self._get_search_roots(context_root, prefix, local_type_name):
+                            for complex_type_node_temp in r_elem.findall(f"{XSD_NS}complexType"):
+                                if complex_type_node_temp.get("name") == local_type_name:
+                                    base_node = complex_type_node_temp
+                                    break
+                            if base_node is not None: break
+                        
+                        # 2.2. RE-PARSING MANUEL DES COMPOSANTS (Si le nœud est trouvé)
+                        if base_node is not None:
+                            # a) Résolution manuelle des attributs (AG_Metadonnees)
+                            for attr_group_ref in base_node.findall(f"{XSD_NS}attributeGroup"):
+                                group_ref_name = attr_group_ref.get("ref")
+                                if group_ref_name:
+                                    g_props, g_reqs = self._resolve_attribute_group(group_ref_name, current_xsd_root)
+                                    base_props.update(g_props)
+                                    base_required_fields.extend(g_reqs) 
+                            
+                            # b) Résolution manuelle de la séquence/group (G_InformationsBase)
+                            sequence_node = base_node.find(f"{XSD_NS}sequence")
+                            if sequence_node is not None:
+                                s_props, s_reqs, _ = self._process_sequence_content(sequence_node, current_xsd_root) 
+                                base_props.update(s_props)
+                                base_required_fields.extend(s_reqs)
+                                
+                    # 3. FUSION
+                    schema["properties"].update(base_props) 
+                    required_fields.extend(base_required_fields) 
+                        
+                target_content_node = extension_node 
+
+
+        # --- BLOC 2: TRAITEMENT DU CONTENU (Séquence/Choix/All) DU NŒUD COURANT (OU EXTENSION) ---
+        
+        sequence_node = target_content_node.find(f"{XSD_NS}sequence")
+        choice_node = target_content_node.find(f"{XSD_NS}choice")
+        all_node = target_content_node.find(f"{XSD_NS}all")
+
+        if sequence_node is not None or all_node is not None:
+            content_node = sequence_node if sequence_node is not None else all_node
+            
+            content_props, content_reqs, content_oneOf = self._process_sequence_content(content_node, current_xsd_root)
+            
+            if content_oneOf:
+                schema["oneOf"] = content_oneOf
+                del schema["type"]
+                if "properties" in schema: del schema["properties"]
+            else:
+                schema["properties"].update(content_props)
+                required_fields.extend(content_reqs)
+
+        elif choice_node is not None and not is_extension:
+             choice_schema_list = self._parse_choice(choice_node, current_xsd_root)
+             if choice_schema_list:
+                schema["oneOf"] = choice_schema_list
+                del schema["type"]
+                if "properties" in schema: del schema["properties"]
+
+        # --- BLOC 3: TRAITEMENT DES ATTRIBUTS DU NŒUD COURANT (OU EXTENSION) ---
+        
+        # Groupes d'Attributs
         for attr_ref_node in target_content_node.findall(f"{XSD_NS}attributeGroup"):
             group_ref_name = attr_ref_node.get("ref")
             if group_ref_name:
                 group_props, group_reqs = self._resolve_attribute_group(group_ref_name, current_xsd_root)
+                
+                if "properties" not in schema: schema["properties"] = {} 
+                
                 schema["properties"].update(group_props)
                 required_fields.extend(group_reqs)
         
+        # Attributs simples
         for attr_node in target_content_node.findall(f"{XSD_NS}attribute"):
             parsed_attr = self._parse_attribute_node(attr_node, current_xsd_root)
             if parsed_attr:
                 attr_name, attr_schema, use = parsed_attr
+                
+                if "properties" not in schema: schema["properties"] = {} 
+
                 schema["properties"][attr_name] = attr_schema
                 if use == "required":
                     required_fields.append(attr_name)
 
         if target_content_node.find(f"{XSD_NS}anyAttribute") is not None:
+            if "properties" not in schema: schema["properties"] = {}
             schema["additionalProperties"] = True
-            
-        # 3. Processus Séquence/Choix/All (Appel de la méthode clé)
-        sequence_node = target_content_node.find(f"{XSD_NS}sequence")
-        choice_node = target_content_node.find(f"{XSD_NS}choice")
-        all_node = target_content_node.find(f"{XSD_NS}all")
-
-        if sequence_node is not None:
-            content_props, content_reqs, content_oneOf = self._process_sequence_content(sequence_node, current_xsd_root)
-            
-            if content_oneOf:
-                # Si la séquence a résolu en oneOf (A, (B|C))
-                schema["oneOf"] = content_oneOf
-            else:
-                # Si la séquence a résolu en propriétés simples (A, B, C)
-                schema["properties"].update(content_props)
-                required_fields.extend(content_reqs)
-
-        elif all_node is not None:
-            # Même logique que sequence pour xs:all (ordre non pertinent en JSON Schema)
-            content_props, content_reqs, content_oneOf = self._process_sequence_content(all_node, current_xsd_root)
-            
-            if content_oneOf:
-                schema["oneOf"] = content_oneOf
-            else:
-                schema["properties"].update(content_props)
-                required_fields.extend(content_reqs)
-                
-        elif choice_node is not None and target_content_node == complex_type_node:
-             # Cas d'un complexType qui ne contient qu'un choice (pas de séquence/all au-dessus)
-             choice_schema_list = self._parse_choice(choice_node, current_xsd_root)
-             if choice_schema_list:
-                schema["oneOf"] = choice_schema_list
         
-        # 4. Finalisation
-        if not schema.get("properties"):
-            if "properties" in schema: del schema["properties"]
+        # --- BLOC 4: FINALISATION ---
+        if "properties" in schema and not schema["properties"]:
+             del schema["properties"]
+             if "type" in schema and "oneOf" not in schema:
+                 del schema["type"]
 
         if required_fields:
-            # Suppression des doublons et tri
             schema["required"] = sorted(list(set(required_fields)))
         
         return schema
@@ -825,52 +913,74 @@ class XSDToJsonSchemaConverter:
         return schema
 
 
-    def _parse_choice(self, choice_node: etree.Element, current_xsd_root: etree.Element) -> List[Dict[str, Any]]:
-        """ 
-        Parse un xs:choice et retourne une liste de schémas (chacun étant une option de 'oneOf'). 
+    def _parse_choice(self, choice_node: etree.Element, current_xsd_root: etree.Element) -> List[dict]:
         """
-        # ... (Logique de parsing de choix, avec gestion de l'imbrication et des groupes) ...
-        choice_options_schemas = []
+        Traite le contenu d'un xs:choice et retourne une liste d'options pour le 'oneOf'.
+        """
+        choice_options: List[dict] = []
         
         for child_node in choice_node.iterchildren():
             if child_node.tag is etree.Comment or child_node.tag is etree.ProcessingInstruction:
                 continue
 
             tag_name = etree.QName(child_node).localname
-
+            
+            # --- 1. Élément simple au sein du choix (comme produitSimple) ---
             if tag_name == "element":
-                element_schema, final_element_name, _ = self._parse_element_for_content(child_node, current_xsd_root)
+                element_schema, final_element_name, min_occurs = self._parse_element_for_content(child_node, current_xsd_root)
+                if not final_element_name: continue
                 
-                if final_element_name:
-                    option_schema = {
-                        "type": "object",
-                        "properties": {
-                            final_element_name: element_schema
-                        },
-                        "required": [final_element_name]
-                    }
-                    choice_options_schemas.append(option_schema)
+                # Un élément simple devient une option unique
+                option = {"type": "object", "properties": {final_element_name: element_schema}}
+                if min_occurs > 0:
+                    option["required"] = [final_element_name]
+                choice_options.append(option)
+                
+            # --- 2. Séquence ou All au sein du choix (l'option perdue : ligneArticle/taxe) ---
+            elif tag_name == "sequence" or tag_name == "all":
+                # Une séquence interne est une SEULE option pour le choix.
+                # On utilise _process_sequence_content pour extraire ses propriétés.
+                props, reqs, nested_oneOf = self._process_sequence_content(child_node, current_xsd_root)
+                
+                if nested_oneOf:
+                    # Si la séquence contient elle-même un choix imbriqué, on aplatit.
+                    choice_options.extend(nested_oneOf)
+                else:
+                    # La séquence simple devient une seule option
+                    option = {"type": "object", "properties": props}
+                    if reqs:
+                        option["required"] = reqs
+                    choice_options.append(option)
 
+            # --- 3. Choix imbriqué ---
             elif tag_name == "choice":
-                # Aplatissement des choix imbriqués
+                # Récursion pour les choix imbriqués
                 nested_options = self._parse_choice(child_node, current_xsd_root)
-                choice_options_schemas.extend(nested_options)
+                choice_options.extend(nested_options)
+            
+            # --- 4. Groupe au sein du choix ---
             elif tag_name == "group":
                 group_ref_name = child_node.get("ref")
                 if group_ref_name:
                     group_schema = self._resolve_model_group(group_ref_name, current_xsd_root)
-                    if "oneOf" in group_schema:
-                        # Ajout direct des options du groupe
-                        choice_options_schemas.extend(group_schema["oneOf"])
-                    elif group_schema.get("properties"):
-                        # Le groupe résout en séquence simple, ajouté comme une option unique
-                        choice_options_schemas.append({
-                            "type": "object",
-                            "properties": group_schema["properties"],
-                            "required": group_schema.get("required", [])
-                        })
-
-        return choice_options_schemas
+                    
+                    resolved_group_schema = group_schema
+                    if "$ref" in group_schema:
+                        ref_name = group_schema["$ref"].split("/")[-1]
+                        if hasattr(self, 'json_schema_definitions') and ref_name in self.json_schema_definitions:
+                            resolved_group_schema = self.json_schema_definitions[ref_name]
+                    
+                    # Le groupe est lui-même un choix (oneOf)
+                    if resolved_group_schema.get("oneOf"):
+                        choice_options.extend(resolved_group_schema["oneOf"])
+                    # Le groupe est une séquence simple et doit être encapsulé comme une option
+                    elif resolved_group_schema.get("properties"):
+                        option = {"type": "object", "properties": resolved_group_schema["properties"]}
+                        if resolved_group_schema.get("required"):
+                            option["required"] = resolved_group_schema["required"]
+                        choice_options.append(option)
+            
+        return choice_options
 
 
     def _parse_model_group_definition(self, group_node: etree.Element, current_xsd_root: etree.Element) -> dict:
