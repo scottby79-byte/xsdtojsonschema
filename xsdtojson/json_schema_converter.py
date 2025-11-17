@@ -474,7 +474,7 @@ class XSDToJsonSchemaConverter:
                         is_combining = True
                         
                         if oneOf_options:
-                            # CORRECTION CRITIQUE: COMBINAISON (Choix * Choix) - Multiplie les options existantes par les nouvelles options du groupe
+                            # COMBINAISON (Choix * Choix) - Multiplie les options existantes par les nouvelles options du groupe
                             new_oneOf_options = []
                             
                             for existing_opt in oneOf_options:
@@ -628,7 +628,7 @@ class XSDToJsonSchemaConverter:
                     base_props = resolved_base_schema.get("properties", {})
                     base_required_fields = resolved_base_schema.get("required", [])
 
-                    # 🔑 CORRECTION CRITIQUE DU CACHE: Si le schéma de base est un objet mais est vide,
+                    # CORRECTION CRITIQUE DU CACHE: Si le schéma de base est un objet mais est vide,
                     # il s'agit d'une coquille incomplète du cache. On force la recherche du nœud XSD pour re-résoudre.
                     if resolved_base_schema.get("type") == "object" and not base_props and base_qname is not None:
                         
@@ -1096,7 +1096,7 @@ class XSDToJsonSchemaConverter:
                 final_schema["$id"] = f"{main_xsd_root.get('targetNamespace', 'http://example.com')}/{root_element_nodes[0].get('name')}.json"
 
         elif len(element_schemas) > 1:
-            # S'il y a plusieurs éléments racine globaux, on utilise 'oneOf' (comme discuté précédemment).
+            # S'il y a plusieurs éléments racine globaux, on utilise 'oneOf'.
             final_schema["oneOf"] = element_schemas
         
         if self.json_schema_definitions:
