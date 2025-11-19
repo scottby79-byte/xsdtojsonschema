@@ -1,71 +1,36 @@
 # XSD to JSON Schema Converter
 
-Ce programme Python xsdtojson.py analyse un ou plusieurs fichiers de schéma XML (XSD) et génère un fichier JSON Schema correspondant. Il prend en charge les imports et inclusions XSD, résout les références aux types et éléments globaux, et traduit les constructions XSD standard (types complexes, types simples, éléments, attributs, groupes, etc.) en concepts JSON Schema équivalents (objets, propriétés, types, énumérations, motifs, etc.).
+Ce programme Python analyse un ou plusieurs fichiers de schéma XML (XSD) et génère un fichier JSON Schema correspondant. Il prend en charge les imports et inclusions XSD, résout les références aux types et éléments globaux, et traduit les constructions XSD standard (types complexes, types simples, éléments, attributs, groupes, etc.) en concepts JSON Schema équivalents (objets, propriétés, types, énumérations, motifs, etc.).
 L'objectif est de fournir un schéma JSON utilisable pour valider des documents JSON qui représentent l'équivalent structurel des documents XML conformes au XSD original.
 
 
 ## Fonctionnalités et Support XSD
 
-Ce convertisseur prend en charge une gamme significative de constructions XSD de la spécification W3C XML Schema, les mappant aux fonctionnalités de JSON Schema (Draft 07).
+## 🛠️ Concepts XSD Mappés
 
-### Types de base et Facettes
+Le tableau ci-dessous détaille les concepts XSD pris en charge et leur traduction en JSON Schema (Draft-07) :
 
-#### Mappage de Types Standard : 
+| Concept XSD | Traduction JSON Schema | Détails de la mise en œuvre |
+| :--- | :--- | :--- |
+| **Structure** | | |
+| `xs:complexType` | `"type": "object"`, `"properties"` | Définitions enregistrées dans `#/definitions`. |
+| `xs:element` | Propriété (`"properties"`) ou `$ref` | Gère les références et les définitions inline. |
+| `xs:sequence`, `xs:all` | `"properties"` et `"required"` | Définissent l'ordre des propriétés, la validation se concentre sur la présence. |
+| `xs:choice` | **`"oneOf"`** | Liste des options possibles (avec les corrections d'imbrication). |
+| `xs:group` | Fusion des propriétés ou **`"oneOf"`** (si le groupe contient un choix) | Gère la fusion de contenu dans le contexte parent. |
+| **Types Simples** | | |
+| Types Numériques/Chaînes | Mappage exhaustif des types XSD intégrés | Utilisation de `XSD_TO_JSON_TYPE_MAP` pour la conversion des types de base. |
+| `xs:list` | `"type": "array"`, `"items"` | Gère les listes de types simples XSD. |
+| `xs:union` | `"type": [...]` ou `"oneOf"` | Gère les unions de types XSD. |
+| **Restrictions** | | |
+| `xs:restriction` (Facettes) | `"enum"`, `"pattern"`, `"minLength"`, `"maximum"`, etc. | Traduction des contraintes de validation. |
+| **Métadonnées** | | |
+| `xs:annotation/documentation` | `"description"` | Ajout de la documentation directement dans le schéma JSON. |
+| `fixed` / `default` | `"const"` / `"default"` | Conversion de la valeur au type JSON cible. |
+| **Attributs** | | |
+| `xs:attribute` | `"properties"` de l'objet parent. | Gère `use="required"` et la résolution des références d'attributs. |
+| `xs:anyAttribute` | `"additionalProperties": true` | Permet des attributs non spécifiés. |
 
-Traduction des types intégrés XSD (xs:string, xs:int, xs:float, xs:boolean, xs:date, xs:dateTime, etc.) vers leurs équivalents JSON Schema (string, integer, number, boolean).
-
-#### xs:simpleType
-##### xs:restriction
-- enumeration : Mappé à la propriété enum.
-- minInclusive, maxInclusive : Mappés à minimum et maximum.
-- minExclusive, maxExclusive : Mappés à exclusiveMinimum et exclusiveMaximum.
-- length, minLength, maxLength : Mappés à minLength et maxLength pour les chaînes.
-- pattern : Mappé à la propriété pattern.
-##### xs:list
-Converti en un type array avec un items basé sur le itemType du XSD.
-##### xs:union
-Mappé à la propriété oneOf de JSON Schema.
-
-### Éléments et Attributs
-
-#### xs:element
-Conversion des définitions d'éléments globaux et locaux.
-Prise en charge des attributs name, type, et ref pour les éléments.
-Gestion de minOccurs et maxOccurs pour déterminer la cardinalité (minItems, maxItems pour les tableaux) et les champs required.
-Prise en charge de l'attribut nillable (ajoute null au tableau des types JSON Schema).
-Mappage des attributs fixed et default aux propriétés const et default de JSON Schema.
-#### xs:attribute
-Conversion des définitions d'attributs locaux.
-Prise en charge de name, type, et ref pour les attributs.
-Gestion de l'attribut use (optional, required).
-Mappage des attributs fixed et default.
-#### xs:any et xs:anyAttribute
-Mappés à additionalProperties: true, permettant des propriétés/attributs non définis dans le schéma.
-
-### Structures complexes
-#### xs:complexType
-- Convertit les types complexes en objets JSON Schema.
-- xs:sequence et xs:all : Les éléments internes sont mappés aux propriétés de l'objet.
-- xs:choice : Mappé à la propriété oneOf de JSON Schema, représentant un choix exclusif entre plusieurs sous-schémas.
-- Gestion des attributs et groupes d'attributs définis ou référencés au sein d'un complexType.
-
-### Références et Définitions
-#### Références Globales
-Résout les références (ref attributs) aux éléments, attributs, groupes de modèles (xs:group) et groupes d'attributs (xs:attributeGroup) définis globalement.
-#### Définitions Réutilisables
-Les types complexes et simples globaux sont convertis en définitions (#/definitions) dans le JSON Schema de sortie pour la réutilisation et la lisibilité, sauf si l'option --no-ref est utilisée.
-#### xs:group (model groups)
-Les groupes de modèles référencés sont résolus et leurs éléments internes sont fusionnés dans le schéma de l'objet parent.
-#### xs:attributeGroup
-Les groupes d'attributs référencés sont résolus et leurs attributs sont fusionnés dans le schéma des propriétés de l'objet parent.
-
-### Documentation
-#### xs:annotation et xs:documentation
-Le contenu de xs:documentation est extrait et utilisé comme description dans le JSON Schema généré.
-
-### Traitement des Fichiers XSD
-Support des Imports/Includes : L'analyseur XSD (XSDParser) gère récursivement les directives xs:import et xs:include, résolvant les chemins relatifs et utilisant un mappage de namespaces connus (XSD_SCHEMALOCATION_MAP) pour les schémas sans schemaLocation.
-Analyse de Répertoire : Peut analyser un répertoire entier de fichiers XSD ou un fichier XSD principal spécifique.
 
 ## Limitations
 
@@ -197,3 +162,7 @@ Un autre exemple :
 ```
 python xsdtojson.py ./tests/in/ -m ApplicationData.xsd -o ./tests/out/ApplicationData.xsd.no-ref.json -p --no-ref
 ```
+
+## ⚖️ Licence
+
+Ce projet est sous la **Licence MIT**. Voir le fichier `LICENSE` pour plus de détails.
