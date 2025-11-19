@@ -178,14 +178,14 @@
     <div class="container">
         <h1>
             <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM9.41 16.59L8 15.17l-1.41 1.42L5.17 15.17 6.59 13.76 5.17 12.34 6.59 10.93l1.41 1.41L9.41 10.93l1.42 1.41-1.42 1.42 1.42 1.42-1.42 1.41zm5.17-1.41L13.17 13.76l1.41-1.42-1.41-1.41 1.41-1.42 1.42 1.42 1.41-1.42 1.42 1.42-1.42 1.41 1.42 1.42-1.42 1.41-1.41-1.41z"/></svg>
-            Convertisseur XSD vers JSON Schema
+            Convertisseur XSD vers JSON Schema (Draft-07)
         </h1>
 
         <div class="main-layout">
             <div class="form-section">
                 <form id="conversionForm">
                     <div class="form-group">
-                        <label for="xsd_archive">Archive ZIP des schémas</label>
+                        <label for="xsd_archive">Archive ZIP des schémas XSD</label>
                         <div class="file-input-wrapper">
                             <svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
                             <span id="fileName">Cliquez ou glissez pour choisir un fichier .zip</span>
@@ -199,7 +199,7 @@
                     </div>
 
                     <div class="form-group">
-                        <label>Options</label>
+                        <!--<label>Options :</label>-->
                         <div class="options">
                             <div class="option-item">
                                 <input type="checkbox" name="pretty" id="pretty" checked>
@@ -223,7 +223,7 @@
 
             <div class="output-section">
                 <div class="output-header">
-                    <h2>JSON Schema Généré</h2>
+                    <h2>JSON Schema</h2>
                     <div class="output-actions">
                         <button id="copyButton">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>

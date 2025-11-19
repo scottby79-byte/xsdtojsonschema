@@ -131,8 +131,8 @@
                                     "properties": {
                                         "employeeId": {
                                             "type": [
-                                                "integer",
-                                                "string"
+                                                "string",
+                                                "integer"
                                             ]
                                         },
                                         "position": {
@@ -206,8 +206,8 @@
                     "properties": {
                         "id": {
                             "type": [
-                                "integer",
-                                "string"
+                                "string",
+                                "integer"
                             ]
                         }
                     },
@@ -248,8 +248,8 @@
                                             "properties": {
                                                 "employeeId": {
                                                     "type": [
-                                                        "integer",
-                                                        "string"
+                                                        "string",
+                                                        "integer"
                                                     ]
                                                 },
                                                 "position": {
@@ -323,8 +323,8 @@
                             "properties": {
                                 "id": {
                                     "type": [
-                                        "integer",
-                                        "string"
+                                        "string",
+                                        "integer"
                                     ]
                                 }
                             },
