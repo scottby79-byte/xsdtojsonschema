@@ -3,86 +3,260 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='0.9em' font-size='90'%3E%E2%9A%99%EF%B8%8F%3C/text%3E%3C/svg%3E">
     <title>Convertisseur XSD vers JSON Schema</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; color: #333; }
-        .container { background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); max-width: 1500px; margin: 20px auto; }
-        h1 { color: #0056b3; text-align: center; margin-bottom: 30px; }
-        form { display: flex; flex-direction: column; gap: 15px; }
-        label { font-weight: bold; }
-        input[type="file"], input[type="text"], input[type="submit"] { padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
-        input[type="submit"] { background-color: #007bff; color: white; cursor: pointer; border: none; font-size: 16px; transition: background-color 0.3s ease; }
-        input[type="submit"]:hover { background-color: #0056b3; }
-        .options { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
-        #jsonOutput {
-            background-color: #eee;
-            border: 1px solid #ccc;
-            padding: 15px;
-            margin-top: 20px;
-            white-space: pre-wrap; /* Préserve les retours à la ligne et les espaces */
-            font-family: 'Courier New', Courier, monospace;
-            max-height: 500px;
-            overflow-y: auto;
-            border-radius: 4px;
+        :root {
+            --bg-color: #1a1b26;
+            --surface-color: #24283b;
+            --text-color: #c0caf5;
+            --accent-color: #7aa2f7;
+            --accent-hover: #9ece6a;
+            --error-color: #f7768e;
+            --border-color: #414868;
         }
-        .error-message { color: red; margin-top: 10px; text-align: center; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .container {
+            background-color: var(--surface-color);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 1400px;
+            margin: 20px auto;
+        }
+
+        h1 {
+            color: var(--accent-color);
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+        h1 svg { width: 40px; height: 40px; }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 30px;
+        }
+
+        #conversionForm {
+            display: flex;
+            flex-direction: column;
+            gap: 25px; /* Augmente l'espace entre les groupes de formulaire */
+        }
+
+        .form-section, .output-section {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        label { font-weight: 600; font-size: 0.9em; color: var(--text-color); }
+        
+        input[type="text"] {
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-size: 1em;
+        }
+        input[type="text"]::placeholder { color: #565f89; }
+
+        .file-input-wrapper {
+            position: relative;
+            background-color: var(--bg-color);
+            border: 2px dashed var(--border-color);
+            border-radius: 6px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: background-color 0.2s, border-color 0.2s;
+        }
+        .file-input-wrapper:hover { border-color: var(--accent-color); }
+        .file-input-wrapper input[type="file"] { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+        .file-input-wrapper .icon { width: 30px; height: 30px; margin-bottom: 10px; color: var(--accent-color); }
+
+        .options { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+        .option-item { display: flex; align-items: center; gap: 10px; }
+        input[type="checkbox"] { accent-color: var(--accent-color); }
+
+        .submit-btn {
+            background-color: var(--accent-color);
+            color: var(--bg-color);
+            cursor: pointer;
+            border: none;
+            font-size: 1.1em;
+            font-weight: bold;
+            padding: 15px;
+            border-radius: 6px;
+            transition: background-color 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin: 15px auto 0 auto; /* Marge supérieure et centrage horizontal */
+            width: 60%; /* Largeur du bouton */
+        }
+        .submit-btn:hover { background-color: var(--accent-hover); }
+        .submit-btn svg { width: 20px; height: 20px; }
+
+        .output-header { display: flex; justify-content: space-between; align-items: center; }
+        h2 { color: var(--text-color); margin: 0; }
+        .output-actions button {
+            background: none;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: background-color 0.2s, border-color 0.2s;
+        }
+        .output-actions button:hover { background-color: var(--border-color); border-color: var(--accent-color); }
+        .output-actions button svg { width: 16px; height: 16px; }
+
+        #jsonOutput {
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            padding: 15px;
+            white-space: pre-wrap;
+            font-family: 'Courier New', Courier, monospace;
+            min-height: 400px;
+            max-height: 70vh;
+            overflow-y: auto;
+            border-radius: 6px;
+            color: var(--text-color);
+        }
+
+        .error-message { color: var(--error-color); margin-top: 10px; text-align: center; font-weight: bold; }
+        
         .loading-spinner {
-            display: none; /* Caché par défaut */
+            display: none;
             border: 4px solid rgba(0, 0, 0, .1);
-            border-left-color: #007bff;
+            border-left-color: var(--accent-color);
             border-radius: 50%;
             width: 24px;
             height: 24px;
             animation: spin 1s linear infinite;
             margin: 10px auto;
         }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        @media (max-width: 900px) {
+            .main-layout { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Convertisseur XSD vers JSON Schema</h1>
+        <h1>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM9.41 16.59L8 15.17l-1.41 1.42L5.17 15.17 6.59 13.76 5.17 12.34 6.59 10.93l1.41 1.41L9.41 10.93l1.42 1.41-1.42 1.42 1.42 1.42-1.42 1.41zm5.17-1.41L13.17 13.76l1.41-1.42-1.41-1.41 1.41-1.42 1.42 1.42 1.41-1.42 1.42 1.42-1.42 1.41 1.42 1.42-1.42 1.41-1.41-1.41z"/></svg>
+            Convertisseur XSD vers JSON Schema
+        </h1>
 
-        <form id="conversionForm">
-            <label for="xsd_archive">Téléchargez l'archive ZIP contenant vos fichiers XSD :</label>
-            <input type="file" name="xsd_archive" id="xsd_archive" accept=".zip" required>
+        <div class="main-layout">
+            <div class="form-section">
+                <form id="conversionForm">
+                    <div class="form-group">
+                        <label for="xsd_archive">Archive ZIP des schémas</label>
+                        <div class="file-input-wrapper">
+                            <svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
+                            <span id="fileName">Cliquez ou glissez pour choisir un fichier .zip</span>
+                            <input type="file" name="xsd_archive" id="xsd_archive" accept=".zip" required>
+                        </div>
+                    </div>
 
-            <label for="main_xsd_name">Nom du fichier XSD principal dans l'archive (ex: `mon_schema_principal.xsd`) :</label>
-            <input type="text" name="main_xsd_name" id="main_xsd_name" placeholder="Laisser vide si l'archive contient un seul XSD à la racine">
+                    <div class="form-group">
+                        <label for="main_xsd_name">Nom du fichier XSD principal</label>
+                        <input type="text" name="main_xsd_name" id="main_xsd_name" placeholder="ex: mon_schema.xsd (optionnel)">
+                    </div>
 
-            <div class="options">
-                <input type="checkbox" name="pretty" id="pretty">
-                <label for="pretty">Formater le JSON de sortie (lisible)</label>
+                    <div class="form-group">
+                        <label>Options</label>
+                        <div class="options">
+                            <div class="option-item">
+                                <input type="checkbox" name="pretty" id="pretty" checked>
+                                <label for="pretty">Formater le JSON de sortie (lisible)</label>
+                            </div>
+                            <div class="option-item">
+                                <input type="checkbox" name="no_ref" id="no_ref">
+                                <label for="no_ref">Ne pas utiliser de références ($ref)</label>
+                            </div>
+                        </div>
+                    </div>
 
-                <input type="checkbox" name="no_ref" id="no_ref">
-                <label for="no_ref">Ne pas utiliser de références ($ref) dans le JSON Schema</label>
+                </form>
+                <button type="submit" form="conversionForm" class="submit-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24"><path d="M22 12l-4-4v3H3v2h15v3l4-4z"/></svg>
+                    Convertir
+                </button>
+                <div class="loading-spinner" id="loadingSpinner"></div>
+                <div class="error-message" id="errorMessage"></div>
             </div>
 
-            <input type="submit" value="Convertir">
-        </form>
-
-        <div class="loading-spinner" id="loadingSpinner"></div>
-        <div class="error-message" id="errorMessage"></div>
-        
-        <h2>JSON Schema Généré :</h2>
-        <pre id="jsonOutput"></pre>
+            <div class="output-section">
+                <div class="output-header">
+                    <h2>JSON Schema Généré</h2>
+                    <div class="output-actions">
+                        <button id="copyButton">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+                            Copier
+                        </button>
+                        <button id="downloadButton">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+                            Télécharger
+                        </button>
+                    </div>
+                </div>
+                <pre id="jsonOutput"></pre>
+            </div>
+        </div>
     </div>
 
     <script>
         document.getElementById('conversionForm').addEventListener('submit', async function(event) {
-            event.preventDefault(); // Empêche le rechargement de la page
+            event.preventDefault();
 
             const form = event.target;
             const formData = new FormData(form);
             const jsonOutput = document.getElementById('jsonOutput');
             const errorMessage = document.getElementById('errorMessage');
             const loadingSpinner = document.getElementById('loadingSpinner');
+            const copyButton = document.getElementById('copyButton');
+            const originalCopyButtonHTML = copyButton.innerHTML; // Sauvegarde l'icône + texte
 
-            jsonOutput.textContent = ''; // Vider le résultat précédent
-            errorMessage.textContent = ''; // Vider les erreurs précédentes
-            loadingSpinner.style.display = 'block'; // Afficher le spinner
+            jsonOutput.textContent = '';
+            errorMessage.textContent = '';
+            loadingSpinner.style.display = 'block';
+            // Réinitialise le bouton à son état d'origine (icône + "Copier")
+            copyButton.innerHTML = originalCopyButtonHTML;
 
             try {
                 const response = await fetch('/convert', {
@@ -92,7 +266,7 @@
 
                 if (response.ok) {
                     const data = await response.json();
-                    jsonOutput.textContent = JSON.stringify(data, null, 2); // Afficher le JSON formaté
+                    jsonOutput.textContent = JSON.stringify(data, null, 2);
                 } else {
                     const errorData = await response.json();
                     errorMessage.textContent = `Erreur : ${errorData.error || 'Une erreur inconnue est survenue.'}`;
@@ -100,7 +274,44 @@
             } catch (error) {
                 errorMessage.textContent = `Erreur de connexion : ${error.message}`;
             } finally {
-                loadingSpinner.style.display = 'none'; // Cacher le spinner
+                loadingSpinner.style.display = 'none';
+            }
+        });
+
+        document.getElementById('xsd_archive').addEventListener('change', function() {
+            const fileNameDisplay = document.getElementById('fileName');
+            if (this.files.length > 0) {
+                fileNameDisplay.textContent = this.files[0].name;
+            } else {
+                fileNameDisplay.textContent = 'Cliquez ou glissez pour choisir un fichier .zip';
+            }
+        });
+
+        document.getElementById('copyButton').addEventListener('click', function() {
+            const jsonOutput = document.getElementById('jsonOutput');
+            if (jsonOutput.textContent) {
+                navigator.clipboard.writeText(jsonOutput.textContent).then(() => {
+                    const originalHTML = this.innerHTML;
+                    this.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg> Copié !`;
+                    setTimeout(() => { this.innerHTML = originalHTML; }, 2000);
+                }).catch(err => {
+                    alert('Erreur lors de la copie dans le presse-papiers.');
+                });
+            }
+        });
+
+        document.getElementById('downloadButton').addEventListener('click', function() {
+            const jsonOutput = document.getElementById('jsonOutput');
+            if (jsonOutput.textContent) {
+                const blob = new Blob([jsonOutput.textContent], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'schema.json';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
             }
         });
     </script>
