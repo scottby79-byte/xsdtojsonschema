@@ -1,6 +1,9 @@
 from lxml import etree
 from xsdtojson.constants import XSD_NAMESPACE, XSD_TO_JSON_TYPE_MAP
 from xsdtojson.xsd_parser import XSDParser
+import logging
+
+logger = logging.getLogger(__name__)
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 # Alias pour la lisibilité
@@ -49,6 +52,7 @@ class XSDToJsonSchemaConverter:
                 if full_xsd_type_uri in XSD_TO_JSON_TYPE_MAP:
                     return XSD_TO_JSON_TYPE_MAP[full_xsd_type_uri]
                 else:
+                    logger.warning(f"XSD type '{xsd_type_qname}' not found in XSD_TO_JSON_TYPE_MAP. Defaulting to 'string'.")
                     return "string" 
             else:
                 return xsd_type_qname 
@@ -56,6 +60,7 @@ class XSDToJsonSchemaConverter:
         full_xsd_type_uri_no_prefix = f"{XSD_NS}{xsd_type_qname}"
         if full_xsd_type_uri_no_prefix in XSD_TO_JSON_TYPE_MAP:
             return XSD_TO_JSON_TYPE_MAP[full_xsd_type_uri_no_prefix]
+        logger.warning(f"XSD type '{xsd_type_qname}' not found in XSD_TO_JSON_TYPE_MAP. Defaulting to 'string'.")
 
         return xsd_type_qname
 
@@ -72,6 +77,7 @@ class XSDToJsonSchemaConverter:
         Résout un type XSD défini par l'utilisateur (complexType ou simpleType) 
         et le convertit en $ref ou en schéma inline.
         """
+        logger.debug(f"Resolving type: '{type_qname}'")
         # ... (Logique de recherche et de conversion/stockage dans self.json_schema_definitions) ...
         prefix, local_type_name = (type_qname.split(":") if ":" in type_qname else (None, type_qname))
 
@@ -95,17 +101,21 @@ class XSDToJsonSchemaConverter:
             if found_node is not None: break
         
         if found_node is None:
+            logger.warning(f"Could not resolve type '{type_qname}'. Returning default 'string'.")
             return {"type": "string"}
 
         definition_key = local_type_name
 
         if self._inline_definitions:
             if etree.QName(found_node).localname == "complexType":
+                logger.debug(f"Inlining complexType '{local_type_name}'.")
                 return self._parse_complex_type(found_node, found_in_root)
             else: 
+                logger.debug(f"Inlining simpleType '{local_type_name}'.")
                 return self._parse_simple_type(found_node, found_in_root)
         else:
             if definition_key not in self.json_schema_definitions:
+                logger.debug(f"Adding '{definition_key}' to definitions.")
                 if etree.QName(found_node).localname == "complexType":
                     self.json_schema_definitions[definition_key] = self._parse_complex_type(found_node, found_in_root)
                 else: 
@@ -119,8 +129,10 @@ class XSDToJsonSchemaConverter:
         """
         json_type = self._get_json_type(type_qname, current_node)
         if isinstance(json_type, str) and json_type not in XSD_TO_JSON_TYPE_MAP.values():
+            logger.debug(f"Type '{type_qname}' is a user-defined type. Resolving...")
             return self._resolve_type(json_type, current_xsd_root)
         else:
+            logger.debug(f"Type '{type_qname}' is a built-in type, mapped to JSON type: '{json_type}'.")
             return {"type": json_type}
 
 
@@ -205,7 +217,9 @@ class XSDToJsonSchemaConverter:
                 attr_schema = resolved_type_schema
                 if use == "optional" and resolved_use == "required": use = "required"
                 elif use == "optional": use = resolved_use
-            else: attr_schema["type"] = "string"
+            else:
+                attr_schema["type"] = "string"
+                logger.warning(f"Could not resolve global attribute reference '{attr_ref}'. Defaulting to type 'string'.")
         elif attr_type_raw:
             attr_schema = self._get_type_schema(attr_type_raw, attribute_node, current_xsd_root)
         else:
@@ -233,6 +247,7 @@ class XSDToJsonSchemaConverter:
         les listes et les unions. 
         """
         schema: Dict[str, Any] = {}
+        logger.debug(f"Parsing simpleType (parent: {parent_element_name or 'global'})")
         
         restriction_node = simple_type_node.find(f"{XSD_NS}restriction")
         if restriction_node is not None:
@@ -245,6 +260,7 @@ class XSDToJsonSchemaConverter:
                 tag_name = etree.QName(child).localname
                 value = child.get("value") # Récupérer la valeur de la contrainte (facet)
 
+                logger.debug(f"  - Found restriction facet: '{tag_name}' with value '{value}'")
                 if tag_name == "enumeration":
                     if "enum" not in schema: schema["enum"] = []
                     # Conversion de la valeur au type JSON approprié
@@ -262,19 +278,22 @@ class XSDToJsonSchemaConverter:
                         length = int(value)
                         schema["minLength"] = length
                         schema["maxLength"] = length
-                    except ValueError: pass
+                    except ValueError:
+                        logger.warning(f"Invalid integer value for 'length' facet: '{value}'. Skipping.")
                 
                 # XSD minLength -> JSON minLength
                 elif tag_name == "minLength" and value is not None:
                     try:
                         schema["minLength"] = int(value)
-                    except ValueError: pass
+                    except ValueError:
+                        logger.warning(f"Invalid integer value for 'minLength' facet: '{value}'. Skipping.")
                     
                 # XSD maxLength -> JSON maxLength
                 elif tag_name == "maxLength" and value is not None:
                     try:
                         schema["maxLength"] = int(value)
-                    except ValueError: pass
+                    except ValueError:
+                        logger.warning(f"Invalid integer value for 'maxLength' facet: '{value}'. Skipping.")
 
                 # --- GESTION DES FACETS DE PLAGE (pour types numériques) ---
                 # XSD minInclusive -> JSON minimum (inclut la valeur)
@@ -296,6 +315,7 @@ class XSDToJsonSchemaConverter:
 
         list_node = simple_type_node.find(f"{XSD_NS}list")
         if list_node is not None:
+            logger.debug("  - Found list definition.")
             item_type_qname = list_node.get("itemType")
             if item_type_qname:
                 item_schema = self._get_type_schema(item_type_qname, simple_type_node, current_xsd_root)
@@ -309,6 +329,7 @@ class XSDToJsonSchemaConverter:
 
         union_node = simple_type_node.find(f"{XSD_NS}union")
         if union_node is not None:
+            logger.debug("  - Found union definition.")
             member_types_raw = union_node.get("memberTypes")
             union_schemas = []
             
@@ -344,6 +365,7 @@ class XSDToJsonSchemaConverter:
         Résout une référence xs:attributeGroup, en fusionnant les attributs et les contraintes 'required'. 
         """
         # ... (Logique de résolution de groupe d'attributs) ...
+        logger.debug(f"Resolving attributeGroup: '{group_ref_qname}'")
         prefix, local_group_name = (group_ref_qname.split(":") if ":" in group_ref_qname else (None, group_ref_qname))
 
         found_node = None
@@ -354,8 +376,9 @@ class XSDToJsonSchemaConverter:
                     found_node = group_node
                     break
             if found_node is not None: break
-        
+
         if found_node is None:
+            logger.warning(f"Could not resolve attribute group '{group_ref_qname}'. Returning empty properties and required list.")
             return {}, []
 
         properties = {}
@@ -436,6 +459,7 @@ class XSDToJsonSchemaConverter:
                 element_schema, final_element_name, min_occurs = self._parse_element_for_content(child_node, current_xsd_root)
                 if not final_element_name: continue
                 
+                logger.debug(f"Processing element '{final_element_name}' in sequence. is_combining: {is_combining}")
                 if is_combining:
                     # Ajout à TOUTES les options oneOf existantes
                     for option in oneOf_options:
@@ -454,6 +478,7 @@ class XSDToJsonSchemaConverter:
             elif tag_name == "group":
                 group_ref_name = child_node.get("ref")
                 if group_ref_name:
+                    logger.debug(f"Processing group '{group_ref_name}' in sequence. is_combining: {is_combining}")
                     group_schema = self._resolve_model_group(group_ref_name, current_xsd_root)
                     
                     # Résolution du $ref pour obtenir les propriétés réelles
@@ -471,6 +496,7 @@ class XSDToJsonSchemaConverter:
                     if group_options:
                         # Cas 2a: Le groupe lui-même est un Choix (oneOf)
                         is_combining = True
+                        logger.debug(f"Group '{group_ref_name}' is a choice. Setting is_combining to True. Combining with existing {len(oneOf_options)} options.")
                         
                         if oneOf_options:
                             # COMBINAISON (Choix * Choix) - Multiplie les options existantes par les nouvelles options du groupe
@@ -543,6 +569,7 @@ class XSDToJsonSchemaConverter:
             elif tag_name == "choice":
                 # Le xs:choice force le mode 'combining'
                 is_combining = True
+                logger.debug(f"Processing choice in sequence. Setting is_combining to True.")
                 choice_schema_list = self._parse_choice(child_node, current_xsd_root)
                 
                 if oneOf_options:
@@ -573,6 +600,7 @@ class XSDToJsonSchemaConverter:
             # --- 4. Gestion de 'xs:any' ---
             elif tag_name == "any":
                  if not is_combining:
+                     logger.debug("Adding 'additionalProperties: true' due to xs:any in non-combining context.")
                      current_properties["additionalProperties"] = True
                  else:
                      for option in oneOf_options:
@@ -599,6 +627,7 @@ class XSDToJsonSchemaConverter:
         du type de base si le cache a retourné une définition incomplète, garantissant 
         l'héritage des propriétés de groupe (dateCreation, priorite).
         """
+        logger.debug(f"Parsing complexType (parent: {parent_element_name or 'global'})")
         schema: Dict[str, Any] = {"type": "object", "properties": {}}
         required_fields: List[str] = []
         target_content_node = complex_type_node
@@ -614,6 +643,7 @@ class XSDToJsonSchemaConverter:
                 base_qname = extension_node.get("base")
                 
                 if base_qname and base_qname != "xs:anyType":
+                    logger.debug(f"  - Handling extension from base '{base_qname}'.")
                     base_schema_result = self._get_type_schema(base_qname, complex_type_node, current_xsd_root)
                     resolved_base_schema = base_schema_result
 
@@ -630,7 +660,7 @@ class XSDToJsonSchemaConverter:
                     # CORRECTION CRITIQUE DU CACHE: Si le schéma de base est un objet mais est vide,
                     # il s'agit d'une coquille incomplète du cache. On force la recherche du nœud XSD pour re-résoudre.
                     if resolved_base_schema.get("type") == "object" and not base_props and base_qname is not None:
-                        
+                        logger.debug(f"Base schema for '{base_qname}' seems empty, attempting manual re-parse of its content.")
                         prefix, local_type_name = (base_qname.split(":") if ":" in base_qname else (None, base_qname))
                         base_node = None
                         context_root = current_xsd_root
@@ -653,6 +683,7 @@ class XSDToJsonSchemaConverter:
                                     base_props.update(g_props)
                                     base_required_fields.extend(g_reqs) 
                             
+                            logger.debug(f"Manually re-parsing base type '{base_qname}' for attributes and content.")
                             # b) Résolution manuelle de la séquence/group (G_InformationsBase)
                             sequence_node = base_node.find(f"{XSD_NS}sequence")
                             if sequence_node is not None:
@@ -660,6 +691,8 @@ class XSDToJsonSchemaConverter:
                                 base_props.update(s_props)
                                 base_required_fields.extend(s_reqs)
                                 
+                        else:
+                            logger.warning(f"Could not find XSD node for base type '{base_qname}' during re-parsing attempt. Inheritance might be incomplete.")
                     # 3. FUSION
                     schema["properties"].update(base_props) 
                     required_fields.extend(base_required_fields) 
@@ -676,6 +709,7 @@ class XSDToJsonSchemaConverter:
         if sequence_node is not None or all_node is not None:
             content_node = sequence_node if sequence_node is not None else all_node
             
+            logger.debug(f"  - Parsing content of sequence/all.")
             content_props, content_reqs, content_oneOf = self._process_sequence_content(content_node, current_xsd_root)
             
             if content_oneOf:
@@ -687,6 +721,7 @@ class XSDToJsonSchemaConverter:
                 required_fields.extend(content_reqs)
 
         elif choice_node is not None and not is_extension:
+             logger.debug(f"  - Parsing content of choice.")
              choice_schema_list = self._parse_choice(choice_node, current_xsd_root)
              if choice_schema_list:
                 schema["oneOf"] = choice_schema_list
@@ -739,6 +774,7 @@ class XSDToJsonSchemaConverter:
         Résout une référence à un élément global (xs:element ref="..."). 
         """
         # ... (Logique de résolution d'élément global, similaire à _resolve_type) ...
+        logger.debug(f"Resolving global element: '{element_ref_qname}'")
         prefix, local_element_name = (element_ref_qname.split(":") if ":" in element_ref_qname else (None, element_ref_qname))
 
         found_node = None
@@ -752,13 +788,16 @@ class XSDToJsonSchemaConverter:
             if found_node is not None: break
         
         if found_node is None:
+            logger.warning(f"Could not resolve global element reference '{element_ref_qname}'. Returning default 'object'.")
             return {"type": "object"}
 
         definition_key = local_element_name
 
         if self._inline_definitions:
+            logger.debug(f"Inlining global element '{element_ref_qname}'.")
             return self._parse_element_definition_for_ref(found_node, current_xsd_root)
         else:
+            logger.debug(f"Creating definition for global element '{element_ref_qname}'.")
             if definition_key not in self.json_schema_definitions:
                 self.json_schema_definitions[definition_key] = self._parse_element_definition_for_ref(found_node, current_xsd_root)
             return {"$ref": f"#/definitions/{definition_key}"}
@@ -1025,6 +1064,7 @@ class XSDToJsonSchemaConverter:
         Résout une référence xs:group et retourne son schéma correspondant. 
         """
         # ... (Logique de résolution de groupe de modèle) ...
+        logger.debug(f"Resolving model group: '{group_ref_name}'")
         prefix, local_group_name = (group_ref_name.split(":") if ":" in group_ref_name else (None, group_ref_name))
         
         found_node = None
@@ -1038,13 +1078,16 @@ class XSDToJsonSchemaConverter:
             if found_node is not None: break
         
         if found_node is None:
+            logger.warning(f"Could not resolve model group reference '{group_ref_name}'. Returning default 'object'.")
             return {"type": "object"}
 
         definition_key = f"group_{local_group_name}"
 
         if self._inline_definitions:
+            logger.debug(f"Inlining model group '{group_ref_name}'.")
             return self._parse_model_group_definition(found_node, current_xsd_root)
         else:
+            logger.debug(f"Creating definition for model group '{group_ref_name}'.")
             if definition_key not in self.json_schema_definitions:
                 self.json_schema_definitions[definition_key] = self._parse_model_group_definition(found_node, current_xsd_root)
             return {"$ref": f"#/definitions/{definition_key}"}

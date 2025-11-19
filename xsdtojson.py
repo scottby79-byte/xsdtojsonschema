@@ -1,10 +1,15 @@
 import argparse
 import json
 import os
+import logging
 
 from xsdtojson.xsd_parser import XSDParser
 from xsdtojson.json_schema_converter import XSDToJsonSchemaConverter
 from xsdtojson.file_utils import FileUtils # Pour la logique de chemin dans main également 
+
+
+# Configure le logger pour ce module
+logger = logging.getLogger(__name__)
 
 def main():
     parser = argparse.ArgumentParser(
@@ -39,6 +44,12 @@ def main():
 
     args = parser.parse_args()
 
+    # Configuration de base du logging
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
+
     input_path = args.input_path
     output_file_path = args.output
     main_xsd_filename = args.main_xsd
@@ -51,7 +62,7 @@ def main():
     main_xsd_full_path = None
 
     if os.path.isdir(input_path):
-        print(f"Scanning directory: {input_path}")
+        logger.info(f"Scanning directory: {input_path}")
         
         # Collect all directories for search_paths using os.walk
         for root_dir, dirs, files in os.walk(input_path):
@@ -60,7 +71,7 @@ def main():
         search_paths = list(set(search_paths)) 
         
         if main_xsd_filename:
-            print(f"  Searching for main XSD file '{main_xsd_filename}' in directory '{input_path}'...")
+            logger.info(f"Searching for main XSD file '{main_xsd_filename}' in directory '{input_path}'...")
             found_main_xsd = False
             for root_dir, dirs, files in os.walk(input_path):
                 for file_name in files:
@@ -69,18 +80,18 @@ def main():
                         if os.path.exists(potential_main_path) and os.path.isfile(potential_main_path):
                             main_xsd_full_path = potential_main_path
                             found_main_xsd = True
-                            print(f"  (Debug: Found main XSD at: {main_xsd_full_path})")
+                            logger.debug(f"Found main XSD at: {main_xsd_full_path}")
                             break # Found the file, exit inner loop
                 if found_main_xsd:
                     break # Found the file, exit outer loop
             
             if not main_xsd_full_path:
-                print(f"Erreur: Le fichier XSD principal '{main_xsd_filename}' n'a pas été trouvé dans l'arborescence '{input_path}'.")
-                print(f"  Vérifiez que le nom du fichier est correct et qu'il se trouve bien sous '{input_path}'.")
+                logger.error(f"Le fichier XSD principal '{main_xsd_filename}' n'a pas été trouvé dans l'arborescence '{input_path}'.")
+                logger.error(f"Vérifiez que le nom du fichier est correct et qu'il se trouve bien sous '{input_path}'.")
                 return
         else:
-            print("Pour un répertoire, il est fortement recommandé de spécifier le fichier XSD principal avec '-m' ou '--main-xsd'.")
-            print("Tentative de détection du XSD principal (le premier .xsd trouvé dans le répertoire racine)...")
+            logger.warning("Pour un répertoire, il est fortement recommandé de spécifier le fichier XSD principal avec '-m' ou '--main-xsd'.")
+            logger.info("Tentative de détection du XSD principal (le premier .xsd trouvé dans le répertoire racine)...")
             
             potential_root_xsd_files = []
             # Only search directly in the input_path for a root XSD if -m is not provided
@@ -91,23 +102,23 @@ def main():
             
             if potential_root_xsd_files:
                 main_xsd_full_path = os.path.normpath(potential_root_xsd_files[0])
-                print(f"Utilisation de '{os.path.basename(main_xsd_full_path)}' comme XSD principal détecté.")
+                logger.info(f"Utilisation de '{os.path.basename(main_xsd_full_path)}' comme XSD principal détecté.")
             else:
-                print(f"Aucun fichier XSD principal n'a pu être détecté directement dans le répertoire '{input_path}'.")
+                logger.error(f"Aucun fichier XSD principal n'a pu être détecté directement dans le répertoire '{input_path}'.")
                 return
 
     elif os.path.isfile(input_path) and input_path.endswith(".xsd"):
         main_xsd_full_path = os.path.normpath(input_path)
         search_paths.append(os.path.dirname(main_xsd_full_path))
     else:
-        print(f"Le chemin d'entrée '{input_path}' n'est ni un répertoire valide, ni un fichier XSD.")
+        logger.error(f"Le chemin d'entrée '{input_path}' n'est ni un répertoire valide, ni un fichier XSD.")
         return
 
-    print(f"\nStarting XSD parsing from: {main_xsd_full_path}")
+    logger.info(f"Starting XSD parsing from: {main_xsd_full_path}")
     main_root_element = xsd_parser.parse_xsd_file(main_xsd_full_path, search_paths) # Pass the collected search_paths
 
     if main_root_element is None:
-        print(f"Erreur: Impossible de charger le fichier XSD principal '{main_xsd_full_path}'.")
+        logger.error(f"Impossible de charger le fichier XSD principal '{main_xsd_full_path}'.")
         return
 
     json_schema = json_converter.convert_xsd_to_json_schema(main_root_element)
@@ -128,9 +139,9 @@ def main():
                     json.dump(json_schema, f, indent=4, ensure_ascii=False)
                 else:
                     json.dump(json_schema, f, ensure_ascii=False)
-            print(f"Le JSON Schema a été généré avec succès dans '{output_file_path}'")
+            logger.info(f"Le JSON Schema a été généré avec succès dans '{output_file_path}'")
         except IOError as e:
-            print(f"Erreur lors de l'écriture du fichier de sortie: {e}")
+            logger.error(f"Erreur lors de l'écriture du fichier de sortie: {e}")
 
 if __name__ == "__main__":
     main()

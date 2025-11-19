@@ -1,7 +1,11 @@
 import os
+import logging
 from lxml import etree
 from xsdtojson.file_utils import FileUtils
 from xsdtojson.constants import XSD_NAMESPACE
+
+# Configure le logger pour ce module
+logger = logging.getLogger(__name__)
 
 class XSDParser:
     """
@@ -30,7 +34,7 @@ class XSDParser:
         if normalized_file_path in self.processed_files:
             for (root_elem, source_path) in self.all_xsd_roots.values():
                 if source_path == normalized_file_path:
-                    print(f"  (Info: File already processed: {normalized_file_path}. Returning cached root.)")
+                    logger.info(f"File already processed: {normalized_file_path}. Returning cached root.")
                     return root_elem
             return None
 
@@ -46,13 +50,13 @@ class XSDParser:
             if target_namespace:
                 if target_namespace not in self.all_xsd_roots:
                     self.all_xsd_roots[target_namespace] = root_info
-                    print(f"  (Info: Stored root for NS '{target_namespace}': {normalized_file_path})")
+                    logger.info(f"Stored root for NS '{target_namespace}': {normalized_file_path}")
                 else:
-                    print(f"  (Info: TargetNamespace '{target_namespace}' already exists from {self.all_xsd_roots[target_namespace][1]}. Keeping existing definition for NS lookup.)")
+                    logger.info(f"TargetNamespace '{target_namespace}' already exists from {self.all_xsd_roots[target_namespace][1]}. Keeping existing definition for NS lookup.")
             
             if normalized_file_path not in self.all_xsd_roots:
                 self.all_xsd_roots[normalized_file_path] = root_info 
-                print(f"  (Info: Stored root for path: {normalized_file_path})")
+                logger.info(f"Stored root for path: {normalized_file_path}")
 
             # Process imports
             for imp in root.findall(f"{XSD_NAMESPACE}import"):
@@ -61,10 +65,10 @@ class XSDParser:
                 if schema_location:
                     imported_file_path = FileUtils.get_file_path(normalized_file_path, schema_location, search_paths)
                     if imported_file_path:
-                        print(f"  Importing: {imported_file_path} for namespace '{namespace}'")
+                        logger.info(f"Importing: {imported_file_path} for namespace '{namespace}'")
                         self.parse_xsd_file(imported_file_path, search_paths)
                     else:
-                        print(f"  Warning: Imported schemaLocation '{schema_location}' not found for namespace '{namespace}' (referenced in {normalized_file_path})")
+                        logger.warning(f"Imported schemaLocation '{schema_location}' not found for namespace '{namespace}' (referenced in {normalized_file_path})")
 
             # Process includes
             for inc in root.findall(f"{XSD_NAMESPACE}include"):
@@ -72,21 +76,21 @@ class XSDParser:
                 if schema_location:
                     included_file_path = FileUtils.get_file_path(normalized_file_path, schema_location, search_paths)
                     if included_file_path:
-                        print(f"  Including: {included_file_path}")
+                        logger.info(f"Including: {included_file_path}")
                         self.parse_xsd_file(included_file_path, search_paths)
                     else:
-                        print(f"  Warning: Included schemaLocation '{schema_location}' not found (referenced in {normalized_file_path})")
+                        logger.warning(f"Included schemaLocation '{schema_location}' not found (referenced in {normalized_file_path})")
             
             return root
 
         except etree.XMLSyntaxError as e:
-            print(f"Erreur de syntaxe XML dans le fichier XSD '{normalized_file_path}': {e}")
+            logger.error(f"Erreur de syntaxe XML dans le fichier XSD '{normalized_file_path}': {e}")
             return None
         except FileNotFoundError:
-            print(f"Le fichier XSD '{normalized_file_path}' n'a pas été trouvé.")
+            logger.error(f"Le fichier XSD '{normalized_file_path}' n'a pas été trouvé.")
             return None
         except Exception as e:
-            print(f"Une erreur inattendue est survenue lors du parsing de '{normalized_file_path}': {e}")
+            logger.error(f"Une erreur inattendue est survenue lors du parsing de '{normalized_file_path}': {e}")
             return None
 
     def get_relevant_roots_for_qname(self, current_xsd_root: etree.Element, qname_prefix: str | None, qname_local_name: str) -> list[etree.Element]:
@@ -103,18 +107,18 @@ class XSDParser:
 
             if target_namespace_uri and target_namespace_uri in self.all_xsd_roots:
                 root_to_search_first = self.all_xsd_roots[target_namespace_uri][0]
-                print(f"  (Info: Resolved NS '{qname_prefix}' to '{target_namespace_uri}', searching in {FileUtils.get_root_source_path(root_to_search_first, self.all_xsd_roots)})")
+                logger.info(f"Resolved NS '{qname_prefix}' to '{target_namespace_uri}', searching in {FileUtils.get_root_source_path(root_to_search_first, self.all_xsd_roots)}")
             elif target_namespace_uri:
-                print(f"  Warning: Namespace URI '{target_namespace_uri}' for prefix '{qname_prefix}' (from '{qname_prefix}:{qname_local_name}') not found as a targetNamespace of any loaded XSD. Will search all loaded schemas.")
+                logger.warning(f"Namespace URI '{target_namespace_uri}' for prefix '{qname_prefix}' (from '{qname_prefix}:{qname_local_name}') not found as a targetNamespace of any loaded XSD. Will search all loaded schemas.")
             else:
                 # This could happen if the prefix is not declared in the current XSD but in an imported one.
                 # We will still search all loaded schemas, but the warning is useful.
-                print(f"  Warning: Namespace prefix '{qname_prefix}' for '{qname_prefix}:{qname_local_name}' not resolved in current XSD ({FileUtils.get_root_source_path(current_xsd_root, self.all_xsd_roots) or 'unknown path'}). Will search all loaded schemas.")
+                logger.warning(f"Namespace prefix '{qname_prefix}' for '{qname_prefix}:{qname_local_name}' not resolved in current XSD ({FileUtils.get_root_source_path(current_xsd_root, self.all_xsd_roots) or 'unknown path'}). Will search all loaded schemas.")
         else:
             current_target_ns = current_xsd_root.get("targetNamespace") if current_xsd_root is not None else None
             if current_target_ns and current_target_ns in self.all_xsd_roots:
                 root_to_search_first = self.all_xsd_roots[current_target_ns][0]
-                print(f"  (Info: No prefix, using current targetNamespace '{current_target_ns}', searching in {FileUtils.get_root_source_path(root_to_search_first, self.all_xsd_roots)})")
+                logger.info(f"No prefix, using current targetNamespace '{current_target_ns}', searching in {FileUtils.get_root_source_path(root_to_search_first, self.all_xsd_roots)}")
 
         search_roots = [root_to_search_first]
         for key, value_tuple in self.all_xsd_roots.items():

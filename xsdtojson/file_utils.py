@@ -1,4 +1,7 @@
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 class FileUtils:
     """
@@ -18,16 +21,21 @@ class FileUtils:
         Returns:
             str | None: Le chemin absolu du fichier trouvé, ou None si non trouvé.
         """
+        logger.debug(f"Attempting to resolve schemaLocation: '{schema_location}'")
         # Essayer d'abord par rapport au fichier actuel
         base_dir = os.path.dirname(current_file_path)
         potential_path = os.path.normpath(os.path.join(base_dir, schema_location))
+        logger.debug(f"Checking relative path: '{potential_path}'")
         if os.path.exists(potential_path):
+            logger.debug(f"Found file at relative path: '{potential_path}'")
             return potential_path
         
         # Ensuite, rechercher dans tous les chemins de recherche fournis
         for search_path in search_paths:
             potential_path = os.path.normpath(os.path.join(search_path, schema_location))
+            logger.debug(f"Checking in search path '{search_path}': '{potential_path}'")
             if os.path.exists(potential_path):
+                logger.debug(f"Found file in search path: '{potential_path}'")
                 return potential_path
         return None
 
