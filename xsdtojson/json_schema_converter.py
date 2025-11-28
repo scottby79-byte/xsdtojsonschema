@@ -416,9 +416,18 @@ class XSDToJsonSchemaConverter:
                 target_properties[prop_name] = prop_schema
     
     
-    # --- MÉTHODE CRUCIALE : GESTION DE LA SÉQUENCE ET DES CHOIX ---
 
-    def _handle_sequence_element(self, element_node: etree.Element, current_xsd_root: etree.Element, state: 'SequenceProcessingState'):
+    class SequenceProcessingState:
+        """Maintient l'état lors du traitement d'une séquence XSD."""
+        def __init__(self):
+            self.properties: Dict[str, dict] = {}
+            self.required: List[str] = []
+            self.oneOf_options: List[dict] = []
+            self.is_combining: bool = False
+
+
+    # --- MÉTHODE CRUCIALE : GESTION DE LA SÉQUENCE ET DES CHOIX ---
+    def _handle_sequence_element(self, element_node: etree.Element, current_xsd_root: etree.Element, state: SequenceProcessingState):
         """
         Traite un nœud <element> trouvé dans une séquence.
         
@@ -444,7 +453,7 @@ class XSDToJsonSchemaConverter:
             if min_occurs > 0:
                 state.required.append(final_element_name)
 
-    def _handle_sequence_group(self, group_node: etree.Element, current_xsd_root: etree.Element, state: 'SequenceProcessingState'):
+    def _handle_sequence_group(self, group_node: etree.Element, current_xsd_root: etree.Element, state: SequenceProcessingState):
         """
         Traite un nœud <group> trouvé dans une séquence.
         
@@ -502,7 +511,7 @@ class XSDToJsonSchemaConverter:
                 state.properties.update(group_props)
                 state.required.extend(group_reqs)
 
-    def _handle_sequence_choice(self, choice_node: etree.Element, current_xsd_root: etree.Element, state: 'SequenceProcessingState'):
+    def _handle_sequence_choice(self, choice_node: etree.Element, current_xsd_root: etree.Element, state: SequenceProcessingState):
         """
         Traite un nœud <choice> trouvé dans une séquence.
         
@@ -527,7 +536,7 @@ class XSDToJsonSchemaConverter:
                 state.oneOf_options.append({"type": "object", "properties": combined_properties, "required": combined_required})
             state.properties, state.required = {}, []
 
-    def _handle_sequence_any(self, any_node: etree.Element, state: 'SequenceProcessingState'):
+    def _handle_sequence_any(self, any_node: etree.Element, state: SequenceProcessingState):
         """
         Traite un nœud <any> trouvé dans une séquence.
         
@@ -551,15 +560,7 @@ class XSDToJsonSchemaConverter:
         qui accumule les propriétés simples et gère la logique complexe de combinaison
         lorsqu'un choix est rencontré.
         """
-        # Objet d'état pour suivre la progression du parsing de la séquence
-        class SequenceProcessingState:
-            def __init__(self):
-                self.properties: Dict[str, dict] = {}
-                self.required: List[str] = []
-                self.oneOf_options: List[dict] = []
-                self.is_combining: bool = False
-        
-        state = SequenceProcessingState()
+        state = self.SequenceProcessingState()
 
         for child_node in parent_node.iterchildren():
             if child_node.tag is etree.Comment or child_node.tag is etree.ProcessingInstruction:
