@@ -3,6 +3,7 @@
 Ce programme Python analyse un ou plusieurs fichiers de schéma XML (XSD) et génère un fichier JSON Schema correspondant. Il prend en charge les imports et inclusions XSD, résout les références aux types et éléments globaux, et traduit les constructions XSD standard (types complexes, types simples, éléments, attributs, groupes, etc.) en concepts JSON Schema équivalents (objets, propriétés, types, énumérations, motifs, etc.).
 L'objectif est de fournir un schéma JSON utilisable pour valider des documents JSON qui représentent l'équivalent structurel des documents XML conformes au XSD original.
 
+L'application est hebergé sur Render.com : https://xsdtojsonschema.onrender.com/
 
 ## Fonctionnalités et Support XSD
 
